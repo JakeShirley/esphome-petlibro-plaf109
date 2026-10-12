@@ -25,6 +25,7 @@ Note that screenshot uses mocked data (this feeder doesn't seem to get that cold
     - max 24 hours, but a timeout past the next scheduled meal will skip that meal if the pet doesn't come
       - timeouts on the scale of hours risk spoiled food, use your judgement
     - optionally repeats chime at a configurable interval
+      - optionally stops repeating after a configurable timeout, keeping the lid open (0 chimes until the pet arrives)
     - closing the lid cancels the meal
   - if pet arrived
     - keeps door open for a configurable minimum feeding time after arrival
