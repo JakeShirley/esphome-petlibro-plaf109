@@ -105,7 +105,7 @@ When re-assembling, ensure all connectors are firmly in place. If you remove the
 
 ## Connecting via Serial
 
-The PLAF109 uses an [`ESP32-C3-WROOM-02U`](https://documentation.espressif.com/esp32-c3-wroom-02_datasheet_en.html#%5B12,%22XYZ%22,56.69,436.45,null%5D) and a `aw9523` I2C GPIO expander, and unlike the PLAF108 it has no exposed pads to short to easily enter programming mode.
+The PLAF109 uses an [`ESP32-C3-WROOM-02U`](https://documentation.espressif.com/esp32-c3-wroom-02_datasheet_en.html#%5B12,%22XYZ%22,56.69,436.45,null%5D) and a `aw9523` I2C GPIO expander, and it has no exposed pads to short to easily enter programming mode.
 
 ![Image of motherboard showing chip](./assets/esp32_chip.png)
 

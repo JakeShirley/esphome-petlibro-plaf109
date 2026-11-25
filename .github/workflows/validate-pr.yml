@@ -30,7 +30,7 @@ jobs:
         with:
           header: pr-title-lint-error
           message: |
-            We require pull request titles to follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format, with a scope matching the component this PR touches (e.g. `fix(plaf109): correct lid timing`, `feat(plaf108): add stall detection`, `docs: update flashing steps`).
+            We require pull request titles to follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format, with a scope matching the component this PR touches (e.g. `fix(plaf109): correct lid timing`, `feat(plaf109): add stall detection`, `docs: update flashing steps`).
 
             Details:
 
@@ -51,9 +51,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - plaf108/config.yaml
           - plaf109/config.yaml
-          - plwf105/config.yaml
     steps:
       - name: Checkout PR head
         uses: actions/checkout@v7
@@ -67,7 +65,7 @@ jobs:
           wifi_ssid: "ci-dummy-ssid"
           wifi_password: "ci-dummy-password"
           EOF
-          for device in plaf108 plaf109 plwf105; do
+          for device in plaf109; do
             {
               echo "${device}__encryption_key: \"Y2ktZHVtbXktYXBpLWVuY3J5cHRpb24ta2V5LTMyYiE=\""
               echo "${device}__ota_password: \"ci-dummy-ota-password\""
