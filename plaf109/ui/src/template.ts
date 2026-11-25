@@ -335,14 +335,14 @@ function settingsTab(r: PlaRemote): TemplateResult {
         r,
         sym(arrivalTimeoutIcon, "var(--tint)"),
         "Arrival Timeout",
-        "How long to wait for your pet once a meal is served. If they don't show up, the lid will close, and the plate won't rotate. Turn off to keep the lid open until your pet arrives.",
+        "How long to wait for your pet once a meal is served. If they don't show up, the lid will close, and the plate won't rotate. Turn off to keep the lid open for the feeding time whether or not your pet comes, then rotate the plate.",
         stepper(r, ENTITIES.arrivalTimeout, "minute", "Arrival Timeout", "Off"),
       )}
       ${settingCell(
         r,
         sym(feedingTimeIcon, "var(--green)"),
         "Feeding Time",
-        "Once your pet arrives, how long to keep the lid open.",
+        "Once your pet arrives, how long to keep the lid open. With Arrival Timeout off, counts from when the meal is served instead.",
         stepper(r, ENTITIES.minimumFeedingTime, "minute", "Feeding Time"),
       )}
       ${settingCell(
@@ -476,8 +476,6 @@ function sheet(r: PlaRemote): TemplateResult {
   if (!draft) return html``;
   const name = ENTITIES.feedTimes[draft.index]?.name ?? "";
   const end = r.draftEndText;
-  const wait = r.numText(ENTITIES.arrivalTimeout, "minute");
-  const eat = r.numText(ENTITIES.minimumFeedingTime, "minute");
   return html`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
     <div class="grabber"></div>
     <div class="top">
@@ -509,13 +507,11 @@ function sheet(r: PlaRemote): TemplateResult {
       </label>
       <div class="cell">
         <span class="main">Lid closes</span>
-        <span class="val">${end ?? "When your pet arrives"}</span>
+        <span class="val">${end ?? "--:--"}</span>
       </div>
     </div>
     <p class="sec-f">
-      ${end
-        ? `The lid waits up to ${wait} for your pet, then stays open ${eat} once they arrive.`
-        : `The lid waits for your pet, then stays open ${eat} once they arrive.`}
+      ${end ? r.draftLidText : ""}
       Change these in Settings.
     </p>
     <p class="sec-f">${r.draftPeriodText}</p>

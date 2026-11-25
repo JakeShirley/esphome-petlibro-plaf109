@@ -8,6 +8,7 @@ substitutions:
   dashboard: true
   cooling_min_target_f: "53"  # colder targets are rejected, the TEC can't sustain them
   cooling_warning_hours: "6"  # flag a problem if cooling runs this long without reaching target
+  battery_present_voltage: "2.0"
 
 esphome:
   name: ${name}
@@ -139,7 +140,7 @@ globals:
     type: std::string
     restore_value: yes
     max_restore_data_length: 60
-  - id: pet_arrival_time
+  - id: feeding_start_time  # when the pet arrived, or when the meal was served with no arrival timeout
     type: uint32_t
     restore_value: no
     initial_value: '0'
@@ -346,24 +347,48 @@ script:
           then:
             - script.execute: door_toggle
       - script.execute: chime_repeat
+      - script.wait: door_toggle  # a close requested while still opening would be dropped
+      # with no arrival timeout the lid stays open for the feeding time from now, whether or not the pet comes
+      - lambda: id(feeding_start_time) = millis();
       - wait_until:
           condition:
             or:
               - binary_sensor.is_on: presence_detector
               - *lid-closed  # closing the lid cancels the meal
-          timeout: !lambda return id(arrival_timeout).state * 60000;
+              - lambda: |-
+                  return id(arrival_timeout).state <= 0 &&
+                         millis() - id(feeding_start_time) >= id(minimum_feeding_time).state * 60000;
+          # without an arrival timeout, the feeding time wait below covers an early timeout here
+          timeout: !lambda |-
+            const float minutes = id(arrival_timeout).state > 0 ? id(arrival_timeout).state : id(minimum_feeding_time).state;
+            return minutes * 60000;
       - script.stop: chime_repeat
       - if:
           condition:
-            binary_sensor.is_on: presence_detector
+            or:
+              - binary_sensor.is_on: presence_detector
+              - lambda: return id(arrival_timeout).state <= 0 && !id(lid_closed);
           then:
-            - logger.log:
-                format: "pet has arrived for feeding"
-                tag: feeding
-            - lambda: id(pet_arrival_time) = millis();
+            - if:
+                condition:
+                  binary_sensor.is_on: presence_detector
+                then:
+                  - logger.log:
+                      format: "pet has arrived for feeding"
+                      tag: feeding
+                  - if:
+                      condition:
+                        lambda: return id(arrival_timeout).state > 0;
+                      then:
+                        - lambda: id(feeding_start_time) = millis();
+                else:
+                  - logger.log:
+                      format: "feeding window ended without the pet arriving"
+                      level: WARN
+                      tag: feeding
             - wait_until:
                 condition:
-                  lambda: return id(lid_closed) || millis() - id(pet_arrival_time) >= (id(minimum_feeding_time).state * 60000);
+                  lambda: return id(lid_closed) || millis() - id(feeding_start_time) >= (id(minimum_feeding_time).state * 60000);
             - logger.log:
                 format: "configured feeding time is over"
                 tag: feeding
@@ -559,7 +584,7 @@ number:
     web_server:
       sorting_group_id: feed
     unit_of_measurement: min
-    min_value: 1
+    min_value: 0  # 0 = keep the lid open for the eating time from the meal start, whether or not the pet comes
     max_value: 1440  # 24 hours
     step: 1
     optimistic: true
@@ -798,6 +823,8 @@ sensor:
       - clamp:
           min_value: 0
           max_value: 100
+      - lambda: |-
+          return id(battery_voltage).state >= ${battery_present_voltage} ? x : NAN;  // unavailable rather than 0% with no batteries
   - platform: adc
     pin: GPIO1
     id: chamber_temperature_voltage
@@ -939,6 +966,15 @@ binary_sensor:
             level: WARN
             tag: events
         - switch.turn_off: tec_control_pin
+  - platform: template
+    name: "Battery Installed"
+    id: battery_installed
+    icon: "mdi:battery-unknown"
+    web_server:
+      sorting_group_id: power
+    device_class: presence
+    # with no batteries the divider reads ~0V; depleted cells still read well above this (factory 0% is 3.3V)
+    lambda: 'return id(battery_voltage).state >= ${battery_present_voltage};'
   - platform: gpio
     name: "Reset Button"
     icon: "mdi:restart-alert"
