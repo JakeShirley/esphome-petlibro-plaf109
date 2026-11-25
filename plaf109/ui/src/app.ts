@@ -1,7 +1,7 @@
 import { LitElement, type TemplateResult } from "lit";
 import { state } from "lit/decorators.js";
 import { type Appearance, applyAppearance, loadAppearance, saveAppearance } from "./appearance";
-import { ENTITIES, type Entity, entityId } from "./entities";
+import { COOLING_MIN_TARGET_F, ENTITIES, type Entity, entityId } from "./entities";
 import {
   atLocalTime,
   dayNumber,
@@ -389,8 +389,11 @@ export class PlaRemote extends LitElement {
 
   private rangeOf(entity: Entity): { min: number; max: number; step: number } {
     const cur = this.entityState(entity);
+    const deviceMin = cur?.min_value !== undefined ? Number(cur.min_value) : -Infinity;
+    // enforced here too in case the device doesn't report its range
+    const floor = entity === ENTITIES.coolingTarget ? COOLING_MIN_TARGET_F : -Infinity;
     return {
-      min: cur?.min_value !== undefined ? Number(cur.min_value) : -Infinity,
+      min: Math.max(deviceMin, floor),
       max: cur?.max_value !== undefined ? Number(cur.max_value) : Infinity,
       step: this.stepOf(entity),
     };
@@ -577,6 +580,37 @@ export class PlaRemote extends LitElement {
 
   toggleSwitch(entity: Entity): void {
     void this.post(entity, this.isOn(entity) ? "turn_off" : "turn_on");
+  }
+
+  /** Cooling keeps wet food safe, so turning it off needs a confirmation */
+  setCooling(e: Event): void {
+    const input = e.target as HTMLInputElement;
+    if (input.checked) {
+      void this.setSwitch(e, ENTITIES.cooling);
+      return;
+    }
+    input.checked = true; // stays on unless confirmed
+    this.ask({
+      title: "Turn Off Cooling?",
+      text: "Wet food can spoil quickly without cooling. Only turn it off if the feeder is empty or holding dry food.",
+      action: "Turn Off",
+      destructive: true,
+      onConfirm: () => {
+        input.checked = false;
+        void this.setSwitch(e, ENTITIES.cooling);
+      },
+    });
+  }
+
+  get coolingMinText(): string {
+    return Math.round(this.rangeOf(ENTITIES.coolingTarget).min) + "°F";
+  }
+
+  canStep(entity: Entity, direction: 1 | -1): boolean {
+    const curVal = this.num(entity);
+    if (!Number.isFinite(curVal)) return false;
+    const { min, max } = this.rangeOf(entity);
+    return direction < 0 ? curVal > min : curVal < max;
   }
 
   stepNumberEntity(entity: Entity, direction: 1 | -1): void {
