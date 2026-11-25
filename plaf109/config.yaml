@@ -347,6 +347,7 @@ script:
           then:
             - script.execute: door_toggle
       - script.execute: chime_repeat
+      - script.wait: door_toggle  # a close requested while still opening would be dropped
       # with no arrival timeout the lid stays open for the feeding time from now, whether or not the pet comes
       - lambda: id(feeding_start_time) = millis();
       - wait_until:
