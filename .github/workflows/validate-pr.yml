@@ -69,7 +69,7 @@ jobs:
           EOF
           for device in plaf108 plaf109 plwf105; do
             {
-              echo "${device}__encryption_key: \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\""
+              echo "${device}__encryption_key: \"Y2ktZHVtbXktYXBpLWVuY3J5cHRpb24ta2V5LTMyYiE=\""
               echo "${device}__ota_password: \"ci-dummy-ota-password\""
               echo "${device}__hotspot_password: \"ci-dummy-hotspot-password\""
               echo "${device}__web_user: \"ci-dummy-user\""
