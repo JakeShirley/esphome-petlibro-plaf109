@@ -1,5 +1,6 @@
 import { LitElement, type TemplateResult } from "lit";
 import { state } from "lit/decorators.js";
+import { type Appearance, applyAppearance, loadAppearance, saveAppearance } from "./appearance";
 import { ENTITIES, type Entity, entityId } from "./entities";
 import {
   atLocalTime,
@@ -161,9 +162,34 @@ export interface UpcomingMeals {
   days: UpcomingDay[];
 }
 
+export type Tab = "feeder" | "schedule" | "settings";
+
+/** The meal being edited in the sheet, saved only on ✓ */
+export interface MealDraft {
+  index: number;
+  time: string; // HH:MM
+  date: string; // YYYY-MM-DD, "" if the entity is missing
+}
+
+export interface MealInfo {
+  index: number;
+  name: string;
+  timeText: string;
+  dateText: string;
+}
+
+export interface Confirm {
+  title: string;
+  text: string;
+  action: string;
+  destructive?: boolean;
+  onConfirm: () => void;
+}
+
+const mealDateFormat = new Intl.DateTimeFormat([], { weekday: "short", month: "short", day: "numeric" });
+
 export class PlaRemote extends LitElement {
-  private editing?: string; // entity id of the focused number or time input
-  private pendingMealTime?: { value: string; meal: Entity; index: number; timer: ReturnType<typeof setTimeout> };
+  private editing?: string; // entity id of the focused number input
   private confirmed: Record<string, EntityState> = {}; // last state from the device, without optimistic values
   private eventSource?: EventSource;
   private nextMealTimer?: ReturnType<typeof setInterval>;
@@ -178,6 +204,11 @@ export class PlaRemote extends LitElement {
   @state() connLabel = "Connecting…";
   @state() toast: { text: string; info: boolean } | null = null;
   @state() showSettingsHelp = false;
+  @state() tab: Tab = "feeder";
+  @state() draft: MealDraft | null = null;
+  @state() menuOpen = false;
+  @state() confirm: Confirm | null = null;
+  @state() appearance: Appearance = loadAppearance();
 
   protected override createRenderRoot(): this {
     return this;
@@ -189,7 +220,8 @@ export class PlaRemote extends LitElement {
     // meal times don't change every tick, but "next" does as the clock moves past one
     this.nextMealTimer = setInterval(() => this.requestUpdate(), 30000);
     this.uptimeTimer = setInterval(() => this.renderUptime(), 1000);
-    document.addEventListener("visibilitychange", this.onVisibilityChange);
+    applyAppearance(this.appearance);
+    document.addEventListener("keydown", this.onDocumentKeydown);
   }
 
   override disconnectedCallback(): void {
@@ -201,11 +233,11 @@ export class PlaRemote extends LitElement {
     this.toast = null;
     this.setConnected(false);
     this.editing = undefined;
-    document.removeEventListener("visibilitychange", this.onVisibilityChange);
+    document.removeEventListener("keydown", this.onDocumentKeydown);
   }
 
-  private readonly onVisibilityChange = (): void => {
-    if (document.visibilityState === "hidden") this.saveMealTime(false);
+  private readonly onDocumentKeydown = (e: KeyboardEvent): void => {
+    if (e.key === "Escape") this.closeOverlays();
   };
 
   override render(): TemplateResult {
@@ -543,6 +575,10 @@ export class PlaRemote extends LitElement {
     if (!ok) input.checked = this.isOn(entity);
   }
 
+  toggleSwitch(entity: Entity): void {
+    void this.post(entity, this.isOn(entity) ? "turn_off" : "turn_on");
+  }
+
   stepNumberEntity(entity: Entity, direction: 1 | -1): void {
     const curVal = this.num(entity);
     if (!Number.isFinite(curVal)) return;
@@ -577,8 +613,7 @@ export class PlaRemote extends LitElement {
     const input = e.target as HTMLInputElement;
     if (e.key === "Escape") {
       this.editing = undefined; // makes the number change handler skip it
-      if (this.pendingMealTime) clearTimeout(this.pendingMealTime.timer);
-      this.pendingMealTime = undefined;
+      e.stopPropagation();
     }
     if (e.key === "Enter" || e.key === "Escape") input.blur();
   }
@@ -618,40 +653,115 @@ export class PlaRemote extends LitElement {
     if (result.value !== this.num(entity)) void this.setValue(entity, result.value.toFixed(decimalsOf(step)));
   }
 
-  /** Debounces saves, as change fires per typed segment, but saves right away once the input has lost focus */
-  onMealTimeChange(e: Event, meal: Entity, index: number): void {
-    if (this.pendingMealTime?.meal !== meal) this.saveMealTime(true);
-    if (this.pendingMealTime) clearTimeout(this.pendingMealTime.timer);
-    const timer = setTimeout(() => this.saveMealTime(false), 2000);
-    this.pendingMealTime = { value: (e.target as HTMLInputElement).value, meal, index, timer };
-    if (!this.isEditing(meal)) this.saveMealTime(true);
+  get meals(): MealInfo[] {
+    return ENTITIES.feedTimes.map((meal, index) => {
+      const date = ENTITIES.mealDates[index];
+      const day = parseDateToDay(date ? this.str(date) : undefined);
+      const seconds = parseTimeToSeconds(this.str(meal));
+      return {
+        index,
+        name: meal.name,
+        timeText: seconds === null ? "--:--" : timeFormat.format(atLocalTime(0, seconds)),
+        dateText: day === null ? "" : mealDateFormat.format(atLocalTime(day, 0)),
+      };
+    });
   }
 
-  onMealTimeBlur(): void {
-    this.saveMealTime(true);
-    this.onEditBlur();
+  get chamberText(): string {
+    const t = this.num(ENTITIES.chamberTemp);
+    return Number.isFinite(t) ? Math.round(t) + "°" : "--°";
   }
 
-  /**
-   * Saves the changed meal time, if any
-   * @param final shows why an out-of-order time wasn't saved, instead of waiting for more typing
-   */
-  private saveMealTime(final: boolean): void {
-    const pending = this.pendingMealTime;
-    if (!pending) return;
-    clearTimeout(pending.timer);
-    const { value, meal, index } = pending;
-    const minutes = parseTimeToMinutes(value);
-    const error = minutes === null ? null : this.mealOrderError(index, minutes);
-    if (error && !final) return;
-    this.pendingMealTime = undefined;
-    if (minutes === null || value === this.mealTimeValue(meal)) return;
-    if (!error) {
-      void this.setValue(meal, value + ":00");
-      return;
+  get coolingTargetText(): string {
+    const t = this.num(ENTITIES.coolingTarget);
+    return Number.isFinite(t) ? Math.round(t) + "°" : "--°";
+  }
+
+  setTab(tab: Tab): void {
+    this.tab = tab;
+    this.closeOverlays();
+    window.scrollTo({ top: 0 });
+  }
+
+  closeOverlays(): void {
+    this.draft = null;
+    this.menuOpen = false;
+    this.confirm = null;
+  }
+
+  toggleMenu(): void {
+    this.menuOpen = !this.menuOpen;
+  }
+
+  ask(confirm: Confirm): void {
+    this.menuOpen = false;
+    this.confirm = confirm;
+  }
+
+  answer(ok: boolean): void {
+    const confirm = this.confirm;
+    this.confirm = null;
+    if (ok) confirm?.onConfirm();
+  }
+
+  setAppearance(change: Partial<Appearance>): void {
+    this.appearance = { ...this.appearance, ...change };
+    applyAppearance(this.appearance);
+    saveAppearance(this.appearance);
+  }
+
+  openMeal(index: number): void {
+    const meal = ENTITIES.feedTimes[index];
+    const date = ENTITIES.mealDates[index];
+    if (!meal) return;
+    this.menuOpen = false;
+    this.draft = { index, time: this.mealTimeValue(meal), date: (date && this.str(date)) || "" };
+  }
+
+  editDraft(change: Partial<MealDraft>): void {
+    if (this.draft) this.draft = { ...this.draft, ...change };
+  }
+
+  /** "12:40 PM" when the lid closes if the pet never arrives, null when it waits indefinitely */
+  get draftEndText(): string | null {
+    const timeout = this.num(ENTITIES.arrivalTimeout);
+    const minutes = parseTimeToMinutes(this.draft?.time);
+    if (!Number.isFinite(timeout) || timeout <= 0 || minutes === null) return null;
+    return timeFormat.format(atLocalTime(0, ((minutes + timeout) % (24 * 60)) * 60));
+  }
+
+  /** How often the schedule repeats with the draft's date */
+  get draftPeriodText(): string {
+    const draft = this.draft;
+    const days = ENTITIES.mealDates.map((date, i) =>
+      parseDateToDay(i === draft?.index ? draft.date : this.str(date)),
+    );
+    const today = dayNumber(new Date());
+    const known = days.map((d) => d ?? today);
+    const period = Math.max(...known) - Math.min(...known) + 1;
+    if (period === 1) return "All meals are on one day, so this schedule repeats daily.";
+    return `Meals span ${period} days, so this schedule repeats every ${period} days.`;
+  }
+
+  /** Saves the sheet's meal time and date, keeping the sheet open if the time is out of order */
+  saveDraft(): void {
+    const draft = this.draft;
+    if (!draft) return;
+    const meal = ENTITIES.feedTimes[draft.index];
+    const date = ENTITIES.mealDates[draft.index];
+    if (!meal) return;
+    const minutes = parseTimeToMinutes(draft.time);
+    const timeChanged = minutes !== null && draft.time !== this.mealTimeValue(meal);
+    if (timeChanged) {
+      const error = this.mealOrderError(draft.index, minutes);
+      if (error) {
+        this.showToast(error);
+        return;
+      }
+      void this.setValue(meal, draft.time + ":00");
     }
-    this.showToast(error);
-    this.requestUpdate(); // puts back the stored time if the input no longer has focus
+    if (date && draft.date && draft.date !== this.str(date)) void this.setValue(date, draft.date);
+    this.draft = null;
   }
 }
 
