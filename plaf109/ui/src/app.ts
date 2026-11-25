@@ -755,8 +755,20 @@ export class PlaRemote extends LitElement {
   get draftEndText(): string | null {
     const timeout = this.num(ENTITIES.arrivalTimeout);
     const minutes = parseTimeToMinutes(this.draft?.time);
-    if (!Number.isFinite(timeout) || timeout <= 0 || minutes === null) return null;
-    return timeFormat.format(atLocalTime(0, ((minutes + timeout) % (24 * 60)) * 60));
+    if (!Number.isFinite(timeout) || timeout < 0 || minutes === null) return null;
+    // with no arrival timeout the lid closes once the feeding time is over
+    const open = timeout > 0 ? timeout : this.feedingMinutes;
+    return timeFormat.format(atLocalTime(0, ((minutes + open) % (24 * 60)) * 60));
+  }
+
+  /** How long the lid stays open for a meal, per the arrival timeout and feeding time settings */
+  get draftLidText(): string {
+    const eat = this.numText(ENTITIES.minimumFeedingTime, "minute");
+    if (this.num(ENTITIES.arrivalTimeout) > 0) {
+      const wait = this.numText(ENTITIES.arrivalTimeout, "minute");
+      return `The lid waits up to ${wait} for your pet, then stays open ${eat} once they arrive.`;
+    }
+    return `The lid stays open ${eat}, whether or not your pet comes.`;
   }
 
   /** How often the schedule repeats with the draft's date */
