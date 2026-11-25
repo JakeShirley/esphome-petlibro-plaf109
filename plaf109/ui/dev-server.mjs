@@ -33,7 +33,7 @@ const lastVisit = new Date(Date.now() - 42 * 60 * 1000).toISOString().replace(/\
 set(ENTITIES.lastVisitTime, lastVisit, lastVisit);
 set(ENTITIES.lastVisitDuration, 92.3, "92.3 s");
 set(ENTITIES.totalVisitTime, 401, "401 s");
-set(ENTITIES.coolingTarget, "40", "40", { min_value: "30", max_value: "70", step: "1" });
+set(ENTITIES.coolingTarget, "55", "55", { min_value: "53", max_value: "70", step: "1" });
 set(ENTITIES.arrivalTimeout, "10", "10", { min_value: "0", max_value: "1440", step: "1" });
 set(ENTITIES.minimumFeedingTime, "3", "3", { min_value: "0", max_value: "240", step: "1" });
 set(ENTITIES.chimeInterval, "0", "0", { min_value: "0", max_value: "600", step: "5" });

@@ -12,6 +12,9 @@ export function entityId(entity: Entity): string {
   return entity.domain + "/" + entity.name;
 }
 
+/** Coldest cooling target the TEC can sustain, keep in sync with cooling_min_target_f in config.yaml */
+export const COOLING_MIN_TARGET_F = 53;
+
 export const ENTITIES = {
   schedule: { domain: "switch", name: "Feeding Schedule" },
   cooling: { domain: "switch", name: "Cooling Enabled" },

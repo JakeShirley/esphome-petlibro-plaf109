@@ -14,7 +14,6 @@ import feederIcon from "@material-symbols/svg-400/rounded/home.svg";
 import longTimeoutIcon from "@material-symbols/svg-400/rounded/hourglass_bottom-fill.svg";
 import infoIcon from "@material-symbols/svg-400/rounded/info-fill.svg";
 import moreIcon from "@material-symbols/svg-400/rounded/more_horiz.svg";
-import coolingIcon from "@material-symbols/svg-400/rounded/ac_unit.svg";
 import coolingFillIcon from "@material-symbols/svg-400/rounded/ac_unit-fill.svg";
 import targetIcon from "@material-symbols/svg-400/rounded/nest_farsight_cool-fill.svg";
 import chimeIntervalIcon from "@material-symbols/svg-400/rounded/notification_settings-fill.svg";
@@ -107,7 +106,7 @@ function stepper(remote: PlaRemote, entity: Entity, unit: string, label: string,
   // leave the input alone while typing so a state event doesn't overwrite it
   const inputValue = remote.isEditing(entity) ? noChange : live(text);
   return html`<div class="stepper">
-    <button aria-label="Decrease ${label}" @click=${() => remote.stepNumberEntity(entity, -1)}>−</button>
+    <button aria-label="Decrease ${label}" ?disabled=${!remote.canStep(entity, -1)} @click=${() => remote.stepNumberEntity(entity, -1)}>−</button>
     <input
       type="text"
       inputmode="decimal"
@@ -120,7 +119,7 @@ function stepper(remote: PlaRemote, entity: Entity, unit: string, label: string,
       @change=${(e: Event) => remote.onNumberChange(e, entity, unit, zeroText)}
       @blur=${() => remote.onEditBlur()}
     />
-    <button aria-label="Increase ${label}" @click=${() => remote.stepNumberEntity(entity, 1)}>+</button>
+    <button aria-label="Increase ${label}" ?disabled=${!remote.canStep(entity, 1)} @click=${() => remote.stepNumberEntity(entity, 1)}>+</button>
   </div>`;
 }
 
@@ -208,14 +207,6 @@ function feederTab(r: PlaRemote): TemplateResult {
       <button class="act" @click=${() => r.pressButton(ENTITIES.rotatePlate)}><div class="ab">${icon(rotateIcon)}</div>Rotate</button>
       <button class="act" @click=${() => r.pressButton(ENTITIES.doorToggle)}><div class="ab">${icon(lidIcon)}</div>Lid</button>
       <button class="act" @click=${() => r.pressButton(ENTITIES.chime)}><div class="ab">${icon(chimeIcon)}</div>Chime</button>
-      <button
-        class="act"
-        aria-pressed=${String(r.isOn(ENTITIES.cooling))}
-        @click=${() => r.toggleSwitch(ENTITIES.cooling)}
-      >
-        <div class="ab">${icon(coolingIcon)}</div>
-        Cooling
-      </button>
     </div>
     <h2 class="sec-h big">
       Upcoming
@@ -326,14 +317,14 @@ function settingsTab(r: PlaRemote): TemplateResult {
         r,
         sym(coolingFillIcon, "var(--cyan)"),
         "Cooling",
-        "Keeps the food chamber chilled. Pauses on battery power.",
-        switchToggle("Cooling", r.isOn(ENTITIES.cooling), (e) => r.setSwitch(e, ENTITIES.cooling)),
+        "Keeps the food chamber chilled. Pauses on battery power. Leave on while wet food is loaded.",
+        switchToggle("Cooling", r.isOn(ENTITIES.cooling), (e) => r.setCooling(e)),
       )}
       ${settingCell(
         r,
         sym(targetIcon, "#5e5ce6"),
         "Target",
-        "The chamber temperature cooling aims for.",
+        `The chamber temperature cooling aims for. Minimum ${r.coolingMinText}, colder than that the cooler can't keep up.`,
         stepper(r, ENTITIES.coolingTarget, "°", "Cooling Target"),
       )}
     </div>
