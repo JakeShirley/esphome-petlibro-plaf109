@@ -719,6 +719,8 @@ switch:
       number: 12
       mode:
         output: true
+    on_turn_off:
+      - lambda: id(cooling_unmet_since) = 0;
   - platform: template
     name: "Cooling Enabled"
     id: cooling_enabled
@@ -848,7 +850,6 @@ sensor:
                   }
             else:
               - switch.turn_off: tec_control_pin
-              - lambda: id(cooling_unmet_since) = 0;
 
   - platform: adc
     pin: GPIO3
