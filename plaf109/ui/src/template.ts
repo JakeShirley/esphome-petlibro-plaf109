@@ -216,11 +216,11 @@ function feederTab(r: PlaRemote): TemplateResult {
       ${upcoming.length === 0
         ? html`<div class="cell"><div class="main text-sec">No upcoming meals</div></div>`
         : upcoming.map(
-            ({ day, meal }, i) => html`<button class="cell" @click=${() => r.openMeal(meal.index)}>
+            ({ day, meal }, i) => html`<div class="cell">
               <span class="mealdot">${meal.index + 1}</span>
               <div class="main">${meal.timeText}<small>${day.title}${meal.countdownText ? ` · ${meal.countdownText}` : ""}</small></div>
-              ${i === 0 ? html`<span class="tag">Next</span>` : html`<span class="chev"></span>`}
-            </button>`,
+              ${i === 0 ? html`<span class="tag">Next</span>` : nothing}
+            </div>`,
           )}
     </div>
     <p class="sec-f">${periodFooter(r)}</p>
