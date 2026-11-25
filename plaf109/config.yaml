@@ -6,6 +6,8 @@ substitutions:
   name: plaf109
   friendly_name: Polar Wet Food Feeder
   dashboard: true
+  cooling_min_target_f: "53"  # colder targets are rejected, the TEC can't sustain them
+  cooling_warning_hours: "6"  # flag a problem if cooling runs this long without reaching target
 
 esphome:
   name: ${name}
@@ -19,6 +21,13 @@ esphome:
       - component.update: pet_total_time
       - component.update: last_visit_duration
       - component.update: last_visit_time
+      - if:  # restored targets saved before the minimum was raised
+          condition:
+            lambda: return id(cooling_target).state < ${cooling_min_target_f};
+          then:
+            - number.set:
+                id: cooling_target
+                value: ${cooling_min_target_f}
       - &apply-status-led
         script.execute: apply_status_led
       - script.execute:
@@ -150,6 +159,10 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'true'
+  - id: cooling_unmet_since  # millis() when cooling started without reaching target, 0 when idle
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
 
 time:
   - platform: sntp
@@ -533,12 +546,12 @@ number:
       sorting_group_id: cooling
     unit_of_measurement: "°F"
     device_class: temperature
-    min_value: 30
+    min_value: ${cooling_min_target_f}
     max_value: 70
     step: 1
     optimistic: true
     restore_value: true
-    initial_value: 55  # stock target is 13°C
+    initial_value: 55  # stock target is 12°C (53.6°F)
   - platform: template
     name: "Arrival Timeout"
     id: arrival_timeout
@@ -829,8 +842,13 @@ sensor:
               - binary_sensor.is_on: ac_power  # matches stock behavior
             then:
               - switch.turn_on: tec_control_pin
+              - lambda: |-
+                  if (id(cooling_unmet_since) == 0) {
+                    id(cooling_unmet_since) = std::max<uint32_t>(millis(), 1);
+                  }
             else:
               - switch.turn_off: tec_control_pin
+              - lambda: id(cooling_unmet_since) = 0;
 
   - platform: adc
     pin: GPIO3
@@ -991,6 +1009,22 @@ binary_sensor:
     web_server:
       sorting_group_id: feed
     lambda: return !id(missed_meal_reason).empty();
+  - platform: template
+    name: "Cooling Target Not Reached"
+    id: cooling_target_not_reached
+    icon: "mdi:snowflake-alert"
+    device_class: problem
+    web_server:
+      sorting_group_id: cooling
+    lambda: |-
+      return id(cooling_unmet_since) != 0 &&
+             millis() - id(cooling_unmet_since) >= ${cooling_warning_hours} * 60UL * 60UL * 1000UL;
+    on_press:
+      - logger.log:
+          format: "Cooling has run for over ${cooling_warning_hours}h without reaching %.0f°F (chamber %.1f°F)"
+          args: [id(cooling_target).state, id(chamber_temperature_f).state]
+          level: WARN
+          tag: events
   - platform: gpio
     id: plate_grating_raw
     internal: true
