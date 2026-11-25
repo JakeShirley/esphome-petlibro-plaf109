@@ -17,6 +17,8 @@ Note that screenshot uses mocked data (this feeder doesn't seem to get that cold
 - automatic cooling to target temperature
   - option to manually disable cooling
   - automatically disables when power is lost to preserve power
+  - targets below 53°F are rejected (stock firmware cools to 12°C / 53.6°F)
+  - "Cooling Target Not Reached" problem sensor turns on if cooling runs 6 hours without reaching the target
   - NOTE: unsure about the utility of setting a target temperature
 - feed now
   - plays chime
