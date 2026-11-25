@@ -504,35 +504,30 @@ export class PlaRemote extends LitElement {
   }
 
   /**
-   * Error if a new meal time is out of order with its neighboring meals
-   * @param index the meal being set
-   * @param minutes its new time, in minutes since midnight
-   */
-  private mealOrderError(index: number, minutes: number): string | null {
-    const meals = ENTITIES.feedTimes.map((meal: Entity) => {
-      const value = this.confirmed[entityId(meal)]?.value;
-      return { name: meal.name, minutes: parseTimeToMinutes(typeof value === "string" ? value : undefined) };
-    });
-    const name = meals[index]?.name;
-    // a neighbor still at this meal's time was never set, e.g. all at 00:00 after flashing
-    const isSet = (m: { minutes: number | null }) => m.minutes !== null && m.minutes !== meals[index]?.minutes;
-    const before = meals.slice(0, index).reverse().find(isSet);
-    const after = meals.slice(index + 1).find(isSet);
-    if (before && minutes <= (before.minutes ?? -1)) return `${name} must be after ${before.name}`;
-    if (after && minutes >= (after.minutes ?? 24 * 60)) return `${name} must be before ${after.name}`;
-    return null;
-  }
-
-  /**
-   * Whether any scheduled meal starts too soon after the previous one, wrapping from Meal Three to Meal One
+   * Whether any scheduled meal starts too soon after the previous one in date and time order,
+   * wrapping from the cycle's last meal to its first. Meal numbers don't affect the order.
    * @param gap minimum minutes between meal starts
    */
   private mealsOverlap(gap: number): boolean {
     if (!this.isOn(ENTITIES.schedule)) return false;
-    const starts = ENTITIES.feedTimes.map((meal) => parseTimeToMinutes(this.str(meal)));
+    const today = dayNumber(new Date());
+    const meals = ENTITIES.feedTimes.map((meal, i) => {
+      const date = ENTITIES.mealDates[i];
+      return {
+        day: parseDateToDay(date ? this.str(date) : undefined) ?? today,
+        minutes: parseTimeToMinutes(this.str(meal)),
+      };
+    });
+    const days = meals.map((m) => m.day);
+    const period = Math.max(...days) - Math.min(...days) + 1;
+    const starts = meals
+      .filter((m): m is { day: number; minutes: number } => m.minutes !== null)
+      .map((m) => m.day * 24 * 60 + m.minutes)
+      .sort((a, b) => a - b);
+    if (starts.length < 2) return false;
     return starts.some((start, i) => {
-      const next = starts[(i + 1) % starts.length];
-      return start !== null && next != null && (next - start + 24 * 60) % (24 * 60) < gap;
+      const next = starts[i + 1] ?? (starts[0] ?? 0) + period * 24 * 60;
+      return next - start < gap;
     });
   }
 
@@ -777,23 +772,15 @@ export class PlaRemote extends LitElement {
     return `Meals span ${period} days, so this schedule repeats every ${period} days.`;
   }
 
-  /** Saves the sheet's meal time and date, keeping the sheet open if the time is out of order */
+  /** Saves the sheet's meal time and date */
   saveDraft(): void {
     const draft = this.draft;
     if (!draft) return;
     const meal = ENTITIES.feedTimes[draft.index];
     const date = ENTITIES.mealDates[draft.index];
     if (!meal) return;
-    const minutes = parseTimeToMinutes(draft.time);
-    const timeChanged = minutes !== null && draft.time !== this.mealTimeValue(meal);
-    if (timeChanged) {
-      const error = this.mealOrderError(draft.index, minutes);
-      if (error) {
-        this.showToast(error);
-        return;
-      }
-      void this.setValue(meal, draft.time + ":00");
-    }
+    const timeChanged = parseTimeToMinutes(draft.time) !== null && draft.time !== this.mealTimeValue(meal);
+    if (timeChanged) void this.setValue(meal, draft.time + ":00");
     if (date && draft.date && draft.date !== this.str(date)) void this.setValue(date, draft.date);
     this.draft = null;
   }
