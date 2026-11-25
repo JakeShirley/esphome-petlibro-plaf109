@@ -591,7 +591,7 @@ number:
       sorting_group_id: feed
     unit_of_measurement: min
     min_value: 0  # 0 chimes until the pet arrives
-    max_value: 60  # matches arrival timeout
+    max_value: 1440  # matches arrival timeout
     step: 1
     optimistic: true
     restore_value: true
