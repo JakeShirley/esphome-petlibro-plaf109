@@ -1,456 +1,571 @@
-import temperatureIcon from "@material-symbols/svg-400/outlined/ac_unit.svg";
-import coolingIcon from "@material-symbols/svg-400/outlined/air.svg";
-import ledModeIcon from "@material-symbols/svg-400/outlined/backlight_high.svg";
-import batteryChargingIcon from "@material-symbols/svg-400/outlined/battery_charging_full.svg";
-import batteryIcon from "@material-symbols/svg-400/outlined/battery_full.svg";
-import feedingTimeIcon from "@material-symbols/svg-400/outlined/cookie.svg";
-import lidIcon from "@material-symbols/svg-400/outlined/earbud_case.svg";
-import errorIcon from "@material-symbols/svg-400/outlined/error.svg";
-import mealOverlapIcon from "@material-symbols/svg-400/outlined/event_busy.svg";
-import helpIcon from "@material-symbols/svg-400/outlined/help.svg";
-import longTimeoutIcon from "@material-symbols/svg-400/outlined/hourglass_bottom.svg";
-import infoIcon from "@material-symbols/svg-400/outlined/info.svg";
-import targetIcon from "@material-symbols/svg-400/outlined/nest_farsight_cool.svg";
-import chimeIntervalIcon from "@material-symbols/svg-400/outlined/notification_settings.svg";
-import chimeIcon from "@material-symbols/svg-400/outlined/notifications.svg";
-import chimeTimeoutIcon from "@material-symbols/svg-400/outlined/notifications_paused.svg";
-import powerOffIcon from "@material-symbols/svg-400/outlined/power_off.svg";
-import arrivalTimeoutIcon from "@material-symbols/svg-400/outlined/timelapse.svg";
-import { html, noChange, type TemplateResult } from "lit";
+import thermometerIcon from "@material-symbols/svg-400/rounded/device_thermostat-fill.svg";
+import ledIcon from "@material-symbols/svg-400/rounded/backlight_high-fill.svg";
+import batteryChargingIcon from "@material-symbols/svg-400/rounded/battery_charging_full-fill.svg";
+import batteryIcon from "@material-symbols/svg-400/rounded/battery_full-fill.svg";
+import checkIcon from "@material-symbols/svg-400/rounded/check.svg";
+import closeIcon from "@material-symbols/svg-400/rounded/close.svg";
+import contrastIcon from "@material-symbols/svg-400/rounded/contrast-fill.svg";
+import feedingTimeIcon from "@material-symbols/svg-400/rounded/cookie-fill.svg";
+import lidIcon from "@material-symbols/svg-400/rounded/earbud_case.svg";
+import errorIcon from "@material-symbols/svg-400/rounded/error-fill.svg";
+import mealOverlapIcon from "@material-symbols/svg-400/rounded/event_busy-fill.svg";
+import helpIcon from "@material-symbols/svg-400/rounded/help.svg";
+import feederIcon from "@material-symbols/svg-400/rounded/home.svg";
+import longTimeoutIcon from "@material-symbols/svg-400/rounded/hourglass_bottom-fill.svg";
+import infoIcon from "@material-symbols/svg-400/rounded/info-fill.svg";
+import moreIcon from "@material-symbols/svg-400/rounded/more_horiz.svg";
+import coolingIcon from "@material-symbols/svg-400/rounded/ac_unit.svg";
+import coolingFillIcon from "@material-symbols/svg-400/rounded/ac_unit-fill.svg";
+import targetIcon from "@material-symbols/svg-400/rounded/nest_farsight_cool-fill.svg";
+import chimeIntervalIcon from "@material-symbols/svg-400/rounded/notification_settings-fill.svg";
+import chimeIcon from "@material-symbols/svg-400/rounded/notifications.svg";
+import chimeTimeoutIcon from "@material-symbols/svg-400/rounded/notifications_paused-fill.svg";
+import paletteIcon from "@material-symbols/svg-400/rounded/palette-fill.svg";
+import pauseIcon from "@material-symbols/svg-400/rounded/pause.svg";
+import playIcon from "@material-symbols/svg-400/rounded/play_arrow.svg";
+import powerOffIcon from "@material-symbols/svg-400/rounded/power_off-fill.svg";
+import feedIcon from "@material-symbols/svg-400/rounded/restaurant.svg";
+import rotateIcon from "@material-symbols/svg-400/rounded/rotate_right.svg";
+import scheduleIcon from "@material-symbols/svg-400/rounded/schedule.svg";
+import scheduleFillIcon from "@material-symbols/svg-400/rounded/schedule-fill.svg";
+import settingsIcon from "@material-symbols/svg-400/rounded/settings.svg";
+import arrivalTimeoutIcon from "@material-symbols/svg-400/rounded/timelapse-fill.svg";
+import { html, noChange, nothing, type TemplateResult } from "lit";
 import { live } from "lit/directives/live.js";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import plateSvg from "../assets/plate.svg";
-import type { PlaRemote, UpcomingDay, UpcomingMeal, UpcomingMeals } from "./app";
+import type { PlaRemote, Tab, UpcomingDay } from "./app";
+import { ACCENTS, type ColorScheme } from "./appearance";
 import { ENTITIES, type Entity } from "./entities";
 
-type PerMeal<T, Meals = typeof ENTITIES.feedTimes> = { readonly [K in keyof Meals]: T };
-const MEAL_CHIPS: PerMeal<string> = ["bg-meal-1", "bg-meal-2", "bg-meal-3"];
-const MEAL_COLORS: PerMeal<string> = ["var(--color-meal-1)", "var(--color-meal-2)", "var(--color-meal-3)"];
+function icon(raw: string, cls = ""): TemplateResult {
+  return html`<span class="ico ${cls}" aria-hidden="true">${unsafeHTML(raw)}</span>`;
+}
 
-const NEXT_MEAL_COLOR = "#D6B798"; // the original plate highlight, kept for Next Feeding
+function sym(raw: string, color: string): TemplateResult {
+  return html`<span class="sym" style="background:${color}">${icon(raw)}</span>`;
+}
 
-function plate(colorOf: (i: number) => string | null): TemplateResult {
-  const vars = ENTITIES.feedTimes.map((_, i) => {
-    const color = colorOf(i);
-    return color ? `--plate-fill-${i + 1}:${color};--plate-digit-${i + 1}:#fff;` : "";
-  }).join("");
-  return html`<div class="w-23 h-24.5 shrink-0 [&>svg]:h-full [&>svg]:w-full" style=${vars} aria-hidden="true">
+/**
+ * The feeder's three-compartment plate
+ * @param colorOf compartment color, or null to leave it empty
+ */
+function plate(remote: PlaRemote, size: string, colorOf: (i: number) => string | null, pick = false): TemplateResult {
+  const vars = ENTITIES.feedTimes
+    .map((_, i) => {
+      const color = colorOf(i);
+      return color ? `--plate-fill-${i + 1}:${color};--plate-digit-${i + 1}:#fff;` : "";
+    })
+    .join("");
+  const onClick = (e: Event) => {
+    const meal = (e.target as Element).closest("[data-meal]")?.getAttribute("data-meal");
+    if (meal) remote.openMeal(Number(meal));
+  };
+  return html`<div class="plate shrink-0 ${size}" style=${vars} aria-hidden="true" @click=${pick ? onClick : nothing}>
     ${unsafeHTML(plateSvg)}
   </div>`;
 }
-function msIcon(raw: string, sizeAndColor = "w-4.5 h-4.5 text-text-muted"): TemplateResult {
-  return html`<span class="inline-block shrink-0 [&>svg]:h-full [&>svg]:w-full [&>svg]:fill-current ${sizeAndColor}"
-    >${unsafeHTML(raw)}</span
-  >`;
-}
-
-const BANNER_TONES = {
-  danger: { box: "bg-danger-soft", badge: "bg-danger/15 text-danger", title: "text-danger" },
-  warn: { box: "bg-accent-soft", badge: "bg-accent/20 text-accent-dark", title: "text-accent-dark" },
-} as const;
 
 function banner(
   hidden: boolean,
-  tone: keyof typeof BANNER_TONES,
-  icon: string,
+  color: string,
+  iconSvg: string,
   title: string,
   detail: string,
   action?: { label: string; onClick: () => void },
 ): TemplateResult {
-  const t = BANNER_TONES[tone];
-  return html`<div class="flex items-center gap-3 rounded-lg max-narrow:rounded-none px-3.5 max-narrow:px-4.5 py-2 mb-3.5 ${t.box}" ?hidden=${hidden}>
-    <span class="w-9 h-9 shrink-0 rounded-full flex items-center justify-center ${t.badge}">${msIcon(icon, "w-5 h-5")}</span>
-    <div class="flex flex-col gap-0.5 min-w-0 flex-1">
-      <div class="text-[14px] font-bold ${t.title}">${title}</div>
-      <div class="text-xs text-banner-detail">${detail}</div>
-    </div>
+  if (hidden) return html``;
+  return html`<div class="banner">
+    ${sym(iconSvg, color)}
+    <div class="main"><b>${title}</b><span>${detail}</span></div>
     ${action
-      ? html`<button
-          class="flex-none h-8 px-3 rounded-full border-0 ${t.badge} text-[13px] font-bold cursor-pointer active:scale-90"
-          aria-label="${action.label}: ${title}"
-          @click=${action.onClick}
-        >
-          ${action.label}
-        </button>`
-      : null}
+      ? html`<button class="tag lg press" aria-label="${action.label}: ${title}" @click=${action.onClick}>${action.label}</button>`
+      : nothing}
   </div>`;
 }
 
-function settingRow(remote: PlaRemote, icon: string, label: string, help: string, control: TemplateResult): TemplateResult {
-  return html`<div class="row flex-col items-stretch">
-    <div class="flex items-center justify-between gap-2">
-      <div class="row-label min-w-0"><span class="badge">${msIcon(icon)}</span>${label}</div>
-      ${control}
-    </div>
-    <p class="m-0 mt-2 text-xs leading-snug text-text-muted" ?hidden=${!remote.showSettingsHelp}>${help}</p>
-  </div>`;
-}
+const missedMealBanner = (r: PlaRemote) =>
+  banner(r.missedMealReason === null, "var(--red)", errorIcon, "Pet missed a meal", r.missedMealReason ?? "", {
+    label: "Clear",
+    onClick: () => r.pressButton(ENTITIES.clearMissedMeal),
+  });
+const batteryBanner = (r: PlaRemote) =>
+  banner(!r.onBattery, "var(--orange)", powerOffIcon, "Running on battery", "Cooling is paused until AC power returns.");
+const overlapBanners = (r: PlaRemote) => html`
+  ${banner(r.mealOverlapError === null, "var(--red)", mealOverlapIcon, "Scheduled meals overlap", r.mealOverlapError ?? "")}
+  ${banner(r.mealOverlapWarning === null, "var(--orange)", mealOverlapIcon, "Meals may overlap", r.mealOverlapWarning ?? "")}
+`;
+const longTimeoutBanner = (r: PlaRemote) =>
+  banner(!r.longArrivalTimeout, "var(--orange)", longTimeoutIcon, "Long arrival timeout", "Food may sit out for hours if your pet doesn't come.");
 
 function switchToggle(label: string, checked: boolean, onChange: (e: Event) => void): TemplateResult {
-  return html`
-    <label class="relative w-11 h-6.5 shrink-0 inline-block">
-      <input
-        type="checkbox"
-        role="switch"
-        aria-label=${label}
-        class="peer absolute inset-0 opacity-0 w-full h-full m-0 z-10 cursor-pointer"
-        .checked=${checked}
-        @change=${onChange}
-      />
-      <span
-        class="absolute inset-0 bg-switch-track-off rounded-full transition-colors duration-150 peer-checked:bg-accent"
-      ></span>
-      <span
-        class="absolute top-0.75 left-0.75 w-5 h-5 bg-white rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-transform duration-150 peer-checked:translate-x-4.5"
-      ></span>
-    </label>
-  `;
+  return html`<input type="checkbox" role="switch" class="sw" aria-label=${label} .checked=${checked} @change=${onChange} />`;
 }
 
-interface NumberStepperOptions {
-  zeroText?: string; // shown instead of 0, for numbers where 0 means "disabled"
-  editable?: boolean; // lets the value be typed in directly, not just stepped
-  label?: string; // accessible name for the typed input, defaults to the entity name
-}
-
-function numberStepper(remote: PlaRemote, entity: Entity, unit: string, { zeroText, editable = false, label }: NumberStepperOptions = {}): TemplateResult {
-  const stepBtn = "w-7.5 h-7.5 rounded-full border-0 bg-tray text-accent-dark text-base font-extrabold cursor-pointer active:scale-90";
+function stepper(remote: PlaRemote, entity: Entity, unit: string, label: string, zeroText?: string): TemplateResult {
   const text = remote.numText(entity, unit, zeroText);
   // leave the input alone while typing so a state event doesn't overwrite it
   const inputValue = remote.isEditing(entity) ? noChange : live(text);
-  const value = editable
-    ? html`<input
-        type="text"
-        inputmode="decimal"
-        enterkeyhint="done"
-        autocomplete="off"
-        aria-label=${label ?? entity.name}
-        class="w-24 rounded-sm border-0 bg-black/20 px-1 py-1 text-center text-[15px] font-extrabold text-inherit font-[inherit] cursor-text outline-none focus:bg-tray focus:ring-2 focus:ring-accent"
-        .value=${inputValue}
-        @focus=${(e: Event) => remote.onNumberFocus(e, entity)}
-        @keydown=${(e: KeyboardEvent) => remote.onEditKeydown(e)}
-        @change=${(e: Event) => remote.onNumberChange(e, entity, unit, zeroText)}
-        @blur=${() => remote.onEditBlur()}
-      />`
-    : html`<span class="min-w-11 text-center font-extrabold text-[15px]">${text}</span>`;
-  return html`
-    <div class="flex items-center gap-2.5">
-      <button class="${stepBtn}" aria-label="Decrease ${label ?? entity.name}" @click=${() => remote.stepNumberEntity(entity, -1)}>−</button>
-      ${value}
-      <button class="${stepBtn}" aria-label="Increase ${label ?? entity.name}" @click=${() => remote.stepNumberEntity(entity, 1)}>+</button>
-    </div>
-  `;
-}
-
-function batteryPill(remote: PlaRemote): TemplateResult {
-  const icon = remote.isOn(ENTITIES.acPower) ? batteryChargingIcon : batteryIcon;
-  const color = remote.batteryLow ? "text-danger" : "text-text-muted";
-  return html`
-    <div class="flex items-center gap-0.5 bg-card rounded-full px-2 py-1.5 shadow text-xs font-semibold text-text" ?hidden=${!remote.batteryInstalled}>
-      ${msIcon(icon, `w-3.5 h-3.5 ${color}`)}
-      <span class="leading-none">${remote.batteryPctText}</span>
-    </div>
-  `;
-}
-
-function upcomingMealRow(meal: UpcomingMeal): TemplateResult {
-  return html`<div class="flex items-center gap-2">
-    <span class="flex items-center gap-2 shrink-0 rounded-full pl-1 pr-3 py-1 text-bg ${MEAL_CHIPS[meal.index] ?? MEAL_CHIPS[0]}">
-      <span
-        class="h-6 min-w-6 @min-[260px]:w-22 px-1.5 shrink-0 rounded-full bg-black/15 flex items-center justify-center text-xs font-extrabold whitespace-nowrap"
-        ><span class="hidden @min-[260px]:inline">${meal.name}</span><span class="@min-[260px]:hidden">${meal.index + 1}</span></span
-      >
-      <span class="min-w-17 text-sm font-bold tabular-nums whitespace-nowrap">${meal.timeText}</span>
-    </span>
-    <span class="ml-auto text-xs text-text-muted whitespace-nowrap" ?hidden=${!meal.countdownText}>${meal.countdownText}</span>
+  return html`<div class="stepper">
+    <button aria-label="Decrease ${label}" @click=${() => remote.stepNumberEntity(entity, -1)}>−</button>
+    <input
+      type="text"
+      inputmode="decimal"
+      enterkeyhint="done"
+      autocomplete="off"
+      aria-label=${label}
+      .value=${inputValue}
+      @focus=${(e: Event) => remote.onNumberFocus(e, entity)}
+      @keydown=${(e: KeyboardEvent) => remote.onEditKeydown(e)}
+      @change=${(e: Event) => remote.onNumberChange(e, entity, unit, zeroText)}
+      @blur=${() => remote.onEditBlur()}
+    />
+    <button aria-label="Increase ${label}" @click=${() => remote.stepNumberEntity(entity, 1)}>+</button>
   </div>`;
 }
 
-function upcomingDay(day: UpcomingDay): TemplateResult {
-  const noMeals = day.meals.length === 0;
-  return html`<li class="flex gap-3.5 py-2.5 border-t border-tray first:border-t-0 first:pt-0 last:pb-0 ${noMeals ? "opacity-60" : ""}">
-    <div
-      class="w-12 shrink-0 self-start rounded-sm flex flex-col items-center py-1.5 ${day.isToday
-        ? "bg-accent-soft text-accent-dark"
-        : "bg-tray text-text"}"
-    >
-      <span class="text-[10px] font-bold uppercase tracking-[0.5px] leading-none">${day.monthText}</span>
-      <span class="text-xl font-extrabold leading-none mt-1">${day.dayOfMonthText}</span>
-    </div>
-    <div class="@container flex-1 min-w-0">
-      <div class="text-sm font-bold ${day.isToday ? "text-accent-dark" : ""}">${day.title}</div>
-      ${noMeals
-        ? html`<div class="text-xs text-text-muted mt-0.5">No meals</div>`
-        : html`<div class="flex flex-col gap-1.5 mt-1.5">${day.meals.map(upcomingMealRow)}</div>`}
-    </div>
-  </li>`;
-}
-
-function upcomingMealsCard(upcoming: UpcomingMeals): TemplateResult {
-  let body: TemplateResult;
-  if (upcoming.off) {
-    body = html`<p class="m-0 text-sm text-text-muted">The feeding schedule is off, so no meals will be served automatically.</p>`;
-  } else if (upcoming.days.length === 0) {
-    body = html`<p class="m-0 text-sm text-text-muted">No upcoming meals.</p>`;
-  } else {
-    body = html`<ol class="list-none m-0 p-0">${upcoming.days.map(upcomingDay)}</ol>`;
-  }
-  return html`<div class="card">
-    <div class="card-title">
-      <h2>Upcoming Meals</h2>
-      <span class="rounded-full bg-tray px-2.5 py-1 text-xs font-semibold text-text-muted">${upcoming.periodText}</span>
-    </div>
-    ${body}
+function settingCell(remote: PlaRemote, symbol: TemplateResult, label: string, help: string, control: TemplateResult): TemplateResult {
+  return html`<div class="cell ic">
+    ${symbol}
+    <div class="main">${label}${remote.showSettingsHelp ? html`<small>${help}</small>` : nothing}</div>
+    ${control}
   </div>`;
 }
 
-export function renderTemplate(remote: PlaRemote): TemplateResult {
-  const nextMeal = remote.nextMeal;
+function moreButton(remote: PlaRemote): TemplateResult {
+  return html`<button
+    class="gbtn round glass press"
+    aria-label="More actions"
+    aria-haspopup="menu"
+    aria-expanded=${String(remote.menuOpen)}
+    @click=${() => remote.toggleMenu()}
+  >
+    ${icon(moreIcon)}
+  </button>`;
+}
+
+function periodFooter(remote: PlaRemote): string {
+  const upcoming = remote.upcomingMeals;
+  if (upcoming.off) return "The schedule is paused, so no meals will be served automatically.";
+  return upcoming.periodText === "Daily" ? "Repeats daily." : `Repeats ${upcoming.periodText.toLowerCase()}.`;
+}
+
+function feederTab(r: PlaRemote): TemplateResult {
+  const next = r.nextMeal;
+  const upcoming = r.upcomingMeals.days.flatMap((day) => day.meals.map((meal) => ({ day, meal }))).slice(0, 4);
+  const power = r.isOn(ENTITIES.acPower) ? "AC power" : "On battery";
   return html`
-    <header class="flex items-center justify-between pt-[calc(16px+env(safe-area-inset-top))] px-1 max-narrow:px-4.5 pb-3">
-      <div>
-        <h1 class="text-[19px] max-[385px]:text-base font-bold m-0 tracking-[0.2px]">${remote.deviceTitle}</h1>
-        <div class="text-xs text-text-muted mt-0.5 flex items-center gap-1">
-          <span class="w-2 h-2 rounded-full shrink-0 ${remote.connected ? "bg-ok" : "bg-danger"}"></span>
-          <span>${remote.connLabel}</span>
-        </div>
-      </div>
-      ${batteryPill(remote)}
-    </header>
-
-    <main>
-    ${banner(
-      remote.missedMealReason === null,
-      "danger",
-      errorIcon,
-      "Pet missed a meal",
-      remote.missedMealReason ?? "Today's meals may be offset unless fed manually.",
-      { label: "Clear", onClick: () => remote.pressButton(ENTITIES.clearMissedMeal) },
-    )}
-    ${banner(!remote.onBattery, "warn", powerOffIcon, "Running on battery", "Cooling is paused until AC power returns.")}
-    ${banner(
-      remote.mealOverlapError === null,
-      "danger",
-      mealOverlapIcon,
-      "Scheduled meals overlap",
-      remote.mealOverlapError ?? "",
-    )}
-    ${banner(
-      remote.mealOverlapWarning === null,
-      "warn",
-      mealOverlapIcon,
-      "Meals may overlap",
-      remote.mealOverlapWarning ?? "",
-    )}
-    ${banner(
-      !remote.longArrivalTimeout,
-      "warn",
-      longTimeoutIcon,
-      "Long arrival timeout",
-      "Food may sit out for hours if your pet doesn't come.",
-    )}
-
-    <div class="sr-only" role="status">${remote.toast?.info ? remote.toast.text : ""}</div>
-    <div class="sr-only" role="alert">${remote.toast && !remote.toast.info ? remote.toast.text : ""}</div>
-    <div
-      class="fixed inset-x-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-50 mx-auto max-w-md flex items-center gap-3 ${remote.toast?.info
-        ? "bg-accent-soft text-accent-dark"
-        : "bg-danger-soft text-danger"} rounded-md px-3.5 py-2.5 text-[13px] font-semibold shadow transition-[opacity,translate] duration-200 starting:opacity-0 starting:translate-y-2"
-      aria-hidden="true"
-      ?hidden=${!remote.toast}
-    >
-      ${msIcon(remote.toast?.info ? infoIcon : errorIcon, "w-5 h-5")}
-      <span>${remote.toast?.text}</span>
-    </div>
-
-    <div class="card">
-      <div class="card-title">
-        <h2>Next Feeding</h2>
-        <div class="flex gap-2">
-          <button
-            class="flex-none h-8 px-3 gap-1.5 rounded-full border-0 bg-accent-soft text-accent-dark text-[13px] font-bold flex items-center justify-center cursor-pointer active:scale-90"
-            title="Toggle lid"
-            @click=${() => remote.pressButton(ENTITIES.doorToggle)}
-          >
-            ${msIcon(lidIcon, "w-4.5 h-4.5")}
-            Lid
-          </button>
-          <button
-            class="flex-none w-8 h-8 rounded-full border-0 bg-accent-soft text-accent-dark flex items-center justify-center cursor-pointer active:scale-90"
-            aria-label="Play chime"
-            title="Play chime"
-            @click=${() => remote.pressButton(ENTITIES.chime)}
-          >
-            ${msIcon(chimeIcon, "w-4.5 h-4.5")}
-          </button>
-        </div>
-      </div>
-      <div class="flex items-center gap-4.5">
-        ${plate((i) => (i === nextMeal.index ? NEXT_MEAL_COLOR : null))}
-        <div class="flex-1 min-w-0">
-          <div class="stat-label">Next slot</div>
-          <div class="text-[28px] font-extrabold leading-tight">${nextMeal.timeText}</div>
-          <div class="text-xs text-text-muted" ?hidden=${!nextMeal.label}>${nextMeal.label}</div>
-        </div>
-      </div>
-      <div class="flex gap-2.5 mt-4">
-        <button class="btn bg-accent text-accent-ink" @click=${() => remote.pressButton(ENTITIES.feedNow)}>
-          ${msIcon(chimeIcon, "w-4.5 h-4.5")}
-          Feed Now
+    <div class="top">
+      <span class="glass flex rounded-[22px]">
+        <button class="gbtn round" aria-label="Play chime" @click=${() => r.pressButton(ENTITIES.chime)}>${icon(chimeIcon)}</button>
+        <button
+          class="gbtn round"
+          aria-label="More actions"
+          aria-haspopup="menu"
+          aria-expanded=${String(r.menuOpen)}
+          @click=${() => r.toggleMenu()}
+        >
+          ${icon(moreIcon)}
         </button>
-        <button class="btn" @click=${() => remote.pressButton(ENTITIES.rotatePlate)}>Rotate Plate</button>
+      </span>
+    </div>
+    <div class="wash"></div>
+    <h1 class="large">${r.deviceTitle}</h1>
+    <div class="relative flex items-center gap-4 mx-5">
+      ${plate(r, "w-24 h-24", (i) => (i === next.index ? "var(--plate-d)" : null))}
+      <div class="min-w-0">
+        <div class="flex items-center gap-1.5 text-[13px] text-sec">
+          <i class="w-2 h-2 rounded-full ${r.connected ? "bg-green" : "bg-red"}"></i>${r.connLabel}
+        </div>
+        <div class="text-[15px] mt-1">${r.batteryInstalled ? `${power} · ${r.batteryPctText}` : power}</div>
+        <div class="text-[13px] text-sec">Pet ${r.presenceText.toLowerCase()}</div>
       </div>
     </div>
-
-    <div class="card">
-      <div class="card-title">
-        <h2>Feeding Schedule</h2>
-        ${switchToggle("Feeding Schedule", remote.isOn(ENTITIES.schedule), (e) => remote.setSwitch(e, ENTITIES.schedule))}
+    ${missedMealBanner(r)} ${batteryBanner(r)} ${overlapBanners(r)}
+    <div class="tiles">
+      <div class="tile">
+        <div class="k"><b class="bg-tint"></b>Next meal</div>
+        <div class="v">${next.timeText}</div>
+        <div class="s">${next.label || "\u00a0"}</div>
       </div>
-      <div class="flex items-center gap-4.5">
-        ${plate((i) => MEAL_COLORS[i] ?? null)}
-        <div class="@container flex flex-col gap-2 flex-1 min-w-0">
-          ${ENTITIES.feedTimes.map(
-            (meal, i) => html`
-              <label class="flex items-center gap-2 rounded-full pl-1 pr-3 py-1 text-bg ${MEAL_CHIPS[i] ?? MEAL_CHIPS[0]}">
-                <span
-                  class="h-6 min-w-6 @min-[200px]:w-19 px-1.5 shrink-0 rounded-full bg-black/15 flex items-center justify-center text-xs font-extrabold"
-                  ><span class="hidden @min-[200px]:inline">${meal.name}</span><span class="@min-[200px]:hidden">${i + 1}</span></span
-                >
-                <input
-                  type="time"
-                  aria-label=${meal.name}
-                  class="time-input flex-1 min-w-0 border-0 bg-transparent p-0 text-sm font-bold text-inherit font-[inherit] disabled:opacity-40"
-                  .value=${remote.isEditing(meal) ? noChange : live(remote.mealTimeValue(meal))}
-                  @focus=${() => remote.onEditFocus(meal)}
-                  @keydown=${(e: KeyboardEvent) => remote.onEditKeydown(e)}
-                  @change=${(e: Event) => remote.onMealTimeChange(e, meal, i)}
-                  @blur=${() => remote.onMealTimeBlur()}
-                />
-              </label>
-            `,
+      <div class="tile">
+        <div class="k"><b class="bg-cyan"></b>Chamber</div>
+        <div class="v">${r.chamberText}</div>
+        <div class="s">${r.isOn(ENTITIES.cooling) ? `Cooling to ${r.coolingTargetText}` : "Cooling off"}</div>
+      </div>
+      <div class="tile">
+        <div class="k"><b class="bg-green"></b>Visits</div>
+        <div class="v">${r.stateText(ENTITIES.visitCount)}</div>
+        <div class="s">${r.totalVisitText} total</div>
+      </div>
+      <div class="tile">
+        <div class="k"><b class="bg-orange"></b>Last visit</div>
+        <div class="v">${r.lastVisitDurationText}</div>
+        <div class="s">${r.lastVisitAtText ? `at ${r.lastVisitAtText}` : "\u00a0"}</div>
+      </div>
+    </div>
+    <div class="acts">
+      <button class="act" @click=${() => r.pressButton(ENTITIES.rotatePlate)}><div class="ab">${icon(rotateIcon)}</div>Rotate</button>
+      <button class="act" @click=${() => r.pressButton(ENTITIES.doorToggle)}><div class="ab">${icon(lidIcon)}</div>Lid</button>
+      <button class="act" @click=${() => r.pressButton(ENTITIES.chime)}><div class="ab">${icon(chimeIcon)}</div>Chime</button>
+      <button
+        class="act"
+        aria-pressed=${String(r.isOn(ENTITIES.cooling))}
+        @click=${() => r.toggleSwitch(ENTITIES.cooling)}
+      >
+        <div class="ab">${icon(coolingIcon)}</div>
+        Cooling
+      </button>
+    </div>
+    <h2 class="sec-h big">
+      Upcoming
+      <button class="tag lg press" @click=${() => r.setTab("schedule")}>Edit</button>
+    </h2>
+    <div class="group">
+      ${upcoming.length === 0
+        ? html`<div class="cell"><div class="main text-sec">No upcoming meals</div></div>`
+        : upcoming.map(
+            ({ day, meal }, i) => html`<button class="cell" @click=${() => r.openMeal(meal.index)}>
+              <span class="mealdot">${meal.index + 1}</span>
+              <div class="main">${meal.timeText}<small>${day.title}${meal.countdownText ? ` · ${meal.countdownText}` : ""}</small></div>
+              ${i === 0 ? html`<span class="tag">Next</span>` : html`<span class="chev"></span>`}
+            </button>`,
+          )}
+    </div>
+    <p class="sec-f">${periodFooter(r)}</p>
+  `;
+}
+
+function upcomingDayCell(day: UpcomingDay): TemplateResult {
+  return html`<div class="cell">
+    <div class="main">
+      <span class=${day.isToday ? "text-tint font-semibold" : ""}>${day.title}</span>
+      <small>${day.meals.length ? day.meals.map((m) => m.timeText).join(" · ") : "No meals"}</small>
+    </div>
+    <span class="flex -space-x-1.5">
+      ${day.meals.map((m) => html`<span class="mealdot w-6.5! h-6.5! text-xs! ring-2 ring-[var(--card)]">${m.index + 1}</span>`)}
+    </span>
+  </div>`;
+}
+
+function scheduleTab(r: PlaRemote): TemplateResult {
+  const upcoming = r.upcomingMeals;
+  const on = r.isOn(ENTITIES.schedule);
+  return html`
+    <div class="top">${moreButton(r)}</div>
+    <h1 class="large">Schedule</h1>
+    ${overlapBanners(r)} ${longTimeoutBanner(r)}
+    <div class="group mt-2.5">
+      <div class="cell ic">
+        ${sym(scheduleFillIcon, "var(--green)")}
+        <div class="main">Feeding Schedule<small>${on ? upcoming.periodText : "Paused"}</small></div>
+        ${switchToggle("Feeding Schedule", on, (e) => r.setSwitch(e, ENTITIES.schedule))}
+      </div>
+    </div>
+    <div class="flex justify-center pt-6 pb-2 ${on ? "" : "opacity-50"}">
+      ${plate(r, "w-56 h-56", () => "var(--plate)", true)}
+    </div>
+    <p class="sec-f text-center">Tap a compartment to change its meal.</p>
+    <h2 class="sec-h">Meals</h2>
+    <div class="group">
+      ${r.meals.map(
+        (meal) => html`<button class="cell" aria-label="Edit ${meal.name}" @click=${() => r.openMeal(meal.index)}>
+          <span class="mealdot">${meal.index + 1}</span>
+          <div class="main">${meal.timeText}<small>${meal.dateText ? `${meal.dateText} · ` : ""}${meal.name}</small></div>
+          <span class="chev"></span>
+        </button>`,
+      )}
+    </div>
+    <p class="sec-f">${periodFooter(r)}</p>
+    ${upcoming.days.length
+      ? html`<h2 class="sec-h">Upcoming</h2>
+          <div class="group">${upcoming.days.map(upcomingDayCell)}</div>`
+      : nothing}
+  `;
+}
+
+const SCHEMES: { id: ColorScheme; label: string }[] = [
+  { id: "system", label: "Auto" },
+  { id: "light", label: "Light" },
+  { id: "dark", label: "Dark" },
+];
+
+function batteryCell(r: PlaRemote): TemplateResult {
+  const ac = r.isOn(ENTITIES.acPower);
+  return html`<div class="cell ic">
+    ${sym(ac ? batteryChargingIcon : batteryIcon, r.batteryLow ? "var(--red)" : "var(--green)")}
+    <div class="main">Battery<small>${ac ? "On AC power" : "On battery"}</small></div>
+    <span class="val">${r.batteryPctText}</span>
+  </div>`;
+}
+
+function settingsTab(r: PlaRemote): TemplateResult {
+  const accentId = r.appearance.accent;
+  return html`
+    <div class="top">
+      <button
+        class="gbtn round glass press ${r.showSettingsHelp ? "on" : ""}"
+        aria-label="Help"
+        aria-pressed=${String(r.showSettingsHelp)}
+        @click=${() => r.toggleSettingsHelp()}
+      >
+        ${icon(helpIcon)}
+      </button>
+    </div>
+    <h1 class="large">Settings</h1>
+    ${missedMealBanner(r)} ${batteryBanner(r)} ${longTimeoutBanner(r)}
+
+    <h2 class="sec-h">Freshness</h2>
+    <div class="group">
+      <div class="cell ic">
+        ${sym(thermometerIcon, "var(--orange)")}
+        <div class="main">Chamber</div>
+        <span class="val">${r.stateText(ENTITIES.chamberTemp, "-- °F")}</span>
+      </div>
+      ${settingCell(
+        r,
+        sym(coolingFillIcon, "var(--cyan)"),
+        "Cooling",
+        "Keeps the food chamber chilled. Pauses on battery power.",
+        switchToggle("Cooling", r.isOn(ENTITIES.cooling), (e) => r.setSwitch(e, ENTITIES.cooling)),
+      )}
+      ${settingCell(
+        r,
+        sym(targetIcon, "#5e5ce6"),
+        "Target",
+        "The chamber temperature cooling aims for.",
+        stepper(r, ENTITIES.coolingTarget, "°", "Cooling Target"),
+      )}
+    </div>
+
+    <h2 class="sec-h">Mealtime</h2>
+    <div class="group">
+      ${settingCell(
+        r,
+        sym(arrivalTimeoutIcon, "var(--tint)"),
+        "Arrival Timeout",
+        "How long to wait for your pet once a meal is served. If they don't show up, the lid will close, and the plate won't rotate. Turn off to keep the lid open until your pet arrives.",
+        stepper(r, ENTITIES.arrivalTimeout, "minute", "Arrival Timeout", "Off"),
+      )}
+      ${settingCell(
+        r,
+        sym(feedingTimeIcon, "var(--green)"),
+        "Feeding Time",
+        "Once your pet arrives, how long to keep the lid open.",
+        stepper(r, ENTITIES.minimumFeedingTime, "minute", "Feeding Time"),
+      )}
+      ${settingCell(
+        r,
+        sym(chimeIntervalIcon, "#ff2d55"),
+        "Chime Interval",
+        "While waiting for your pet, chime again every this many seconds until they arrive. Turn off to chime only once per meal.",
+        stepper(r, ENTITIES.chimeInterval, "second", "Chime Interval", "Off"),
+      )}
+      ${settingCell(
+        r,
+        sym(chimeTimeoutIcon, "#8e8e93"),
+        "Chime Timeout",
+        "Stop repeating the chime after this many minutes. The lid stays open, and the meal keeps waiting for your pet. Turn off to chime until they arrive.",
+        stepper(r, ENTITIES.chimeTimeout, "minute", "Chime Timeout", "Off"),
+      )}
+    </div>
+    <p class="sec-f" ?hidden=${r.showSettingsHelp}>Tap ? for what each setting does.</p>
+
+    <h2 class="sec-h">Device</h2>
+    <div class="group">
+      ${settingCell(
+        r,
+        sym(ledIcon, "#ffcc00"),
+        "Status LED",
+        "Enable to show a steady white light while everything is fine. Warnings show regardless: red pulse for a missed meal and pulsing white when Wi-Fi is down.",
+        switchToggle("Status LED", r.isOn(ENTITIES.statusLed), (e) => r.setSwitch(e, ENTITIES.statusLed)),
+      )}
+      ${r.batteryInstalled ? batteryCell(r) : nothing}
+      <a class="cell ic text-ink no-underline" href="https://github.com/esphome/esphome/releases" target="_blank" rel="noopener">
+        ${sym(infoIcon, "#8e8e93")}
+        <div class="main shrink-0 whitespace-nowrap">Firmware<small>${r.connLabel}</small></div>
+        <span class="val chev max-w-[55%] truncate">${r.firmwareVersionText}</span>
+      </a>
+    </div>
+
+    <h2 class="sec-h">Appearance</h2>
+    <div class="group">
+      <div class="cell ic">
+        ${sym(paletteIcon, "var(--tint)")}
+        <div class="main">Accent Color<small>${ACCENTS.find((a) => a.id === accentId)?.name}</small></div>
+      </div>
+      <div class="cell grid! grid-cols-8 justify-items-center gap-1! py-3.5" role="group" aria-label="Accent color">
+        ${ACCENTS.map(
+          (a) => html`<button
+            class="swatch press"
+            style="background:${a.tint};color:${a.tint}"
+            title=${a.name}
+            aria-label=${a.name}
+            aria-pressed=${String(a.id === accentId)}
+            @click=${() => r.setAppearance({ accent: a.id })}
+          ></button>`,
+        )}
+      </div>
+      <div class="cell ic">
+        ${sym(contrastIcon, "#636366")}
+        <div class="main">Mode</div>
+        <div class="seg" role="group" aria-label="Mode">
+          ${SCHEMES.map(
+            (s) => html`<button aria-pressed=${String(r.appearance.scheme === s.id)} @click=${() => r.setAppearance({ scheme: s.id })}>
+              ${s.label}
+            </button>`,
           )}
         </div>
       </div>
     </div>
+    <p class="sec-f">Appearance is saved in this browser.</p>
+  `;
+}
 
-    ${upcomingMealsCard(remote.upcomingMeals)}
+const TABS: { id: Tab; label: string; icon: string; render: (r: PlaRemote) => TemplateResult }[] = [
+  { id: "feeder", label: "Feeder", icon: feederIcon, render: feederTab },
+  { id: "schedule", label: "Schedule", icon: scheduleIcon, render: scheduleTab },
+  { id: "settings", label: "Settings", icon: settingsIcon, render: settingsTab },
+];
 
-    <div class="card">
-      <div class="card-title">
-        <h2>Pet Presence</h2>
-        <span class="text-xs font-semibold ${remote.isOn(ENTITIES.presence) ? "text-ok" : "text-text-muted"}">${remote.presenceText}</span>
-      </div>
-      <div class="@container">
-        <div class="flex flex-col @min-[380px]:flex-row @min-[380px]:items-center">
-          <div class="flex items-center gap-4.5 flex-1 min-w-0">
-            <div
-              class="pet-body w-23 h-19 shrink-0 bg-current transition-colors duration-150 ${remote.isOn(ENTITIES.presence)
-      ? "text-accent-dark"
-      : "text-text-muted"}"
-            ></div>
-            <div class="flex-1 min-w-0">
-              <div class="stat-label">Last visit</div>
-              <div class="text-[28px] font-extrabold leading-tight">${remote.lastVisitDurationText}</div>
-              <div class="text-xs text-text-muted" ?hidden=${!remote.lastVisitAtText}>at ${remote.lastVisitAtText}</div>
-            </div>
-          </div>
-          <div
-            class="flex items-stretch text-center mt-4 pt-3.5 border-t border-tray @min-[380px]:mt-0 @min-[380px]:pt-0 @min-[380px]:border-t-0 @min-[380px]:self-stretch @min-[380px]:py-2"
-          >
-            <div class="flex-1 flex flex-col justify-center @min-[380px]:flex-none @min-[380px]:px-3.5">
-              <div class="stat-label">Visits</div>
-              <div class="text-lg font-extrabold leading-tight mt-0.5">${remote.stateText(ENTITIES.visitCount)}</div>
-            </div>
-            <div class="w-px bg-tray"></div>
-            <div class="flex-1 flex flex-col justify-center @min-[380px]:flex-none @min-[380px]:pl-3.5">
-              <div class="stat-label">Total time</div>
-              <div class="text-lg font-extrabold leading-tight mt-0.5">${remote.totalVisitText}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title"><h2>Chamber</h2></div>
-      <div class="row">
-        <div class="row-label">
-          <span class="badge">${msIcon(temperatureIcon)}</span>
-          Temperature
-        </div>
-        <span class="text-text text-lg font-extrabold">${remote.stateText(ENTITIES.chamberTemp, "-- °F")}</span>
-      </div>
-      <div class="row">
-        <div class="row-label"><span class="badge">${msIcon(coolingIcon)}</span>Cooling</div>
-        ${switchToggle("Cooling", remote.isOn(ENTITIES.cooling), (e) => remote.setSwitch(e, ENTITIES.cooling))}
-      </div>
-      <div class="row">
-        <div class="row-label"><span class="badge">${msIcon(targetIcon)}</span>Target</div>
-        ${numberStepper(remote, ENTITIES.coolingTarget, "°", { editable: true, label: "Cooling Target" })}
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">
-        <h2>Configuration</h2>
-        <button
-          class="w-8 h-8 shrink-0 rounded-full border-0 flex items-center justify-center cursor-pointer active:scale-90 ${remote.showSettingsHelp
-            ? "bg-accent-soft text-accent-dark"
-            : "bg-transparent text-text-muted"}"
-          aria-label="Help"
-          aria-expanded=${String(remote.showSettingsHelp)}
-          @click=${() => remote.toggleSettingsHelp()}
-        >
-          ${msIcon(helpIcon, "w-5 h-5")}
-        </button>
-      </div>
-      ${settingRow(
-        remote,
-        arrivalTimeoutIcon,
-        "Arrival Timeout",
-        "How long to wait for your pet once a meal is served. If they don't show up, the lid will close, and the plate won't rotate. Turn off to keep the lid open until your pet arrives.",
-        numberStepper(remote, ENTITIES.arrivalTimeout, "minute", { zeroText: "Off", editable: true, label: "Arrival Timeout" }),
-      )}
-      ${settingRow(
-        remote,
-        feedingTimeIcon,
-        "Feeding Time",
-        "Once your pet arrives, how long to keep the lid open.",
-        numberStepper(remote, ENTITIES.minimumFeedingTime, "minute", { editable: true, label: "Feeding Time" }),
-      )}
-      ${settingRow(
-        remote,
-        chimeIntervalIcon,
-        "Chime Interval",
-        "While waiting for your pet, chime again every this many seconds until they arrive. Turn off to chime only once per meal.",
-        numberStepper(remote, ENTITIES.chimeInterval, "second", { zeroText: "Off", editable: true, label: "Chime Interval" }),
-      )}
-      ${settingRow(
-        remote,
-        chimeTimeoutIcon,
-        "Chime Timeout",
-        "Stop repeating the chime after this many minutes. The lid stays open, and the meal keeps waiting for your pet. Turn off to chime until they arrive.",
-        numberStepper(remote, ENTITIES.chimeTimeout, "minute", { zeroText: "Off", editable: true, label: "Chime Timeout" }),
-      )}
-      ${settingRow(
-        remote,
-        ledModeIcon,
-        "Status LED",
-        "Enable to show a steady white light while everything is fine. Warnings show regardless: red pulse for a missed meal and pulsing white when Wi-Fi is down.",
-        switchToggle("Status LED", remote.isOn(ENTITIES.statusLed), (e) => remote.setSwitch(e, ENTITIES.statusLed)),
+function tabBar(r: PlaRemote): TemplateResult {
+  return html`<nav class="tabs" aria-label="Sections">
+    <div class="tb glass">
+      ${TABS.map(
+        (t) => html`<button class="t" aria-current=${r.tab === t.id ? "page" : "false"} @click=${() => r.setTab(t.id)}>
+          ${icon(t.icon)}${t.label}
+        </button>`,
       )}
     </div>
-    </main>
+    <button
+      class="solo prom press"
+      aria-label="Feed now"
+      title="Feed now"
+      @click=${() =>
+        r.ask({
+          title: "Feed now?",
+          text: "Opens the lid and serves the next compartment.",
+          action: "Feed",
+          onConfirm: () => r.pressButton(ENTITIES.feedNow),
+        })}
+    >
+      ${icon(feedIcon)}
+    </button>
+  </nav>`;
+}
 
-    <footer class="text-center">
-      <a
-        class="text-xs text-text-muted underline underline-offset-2"
-        href="https://github.com/esphome/esphome/releases"
-        target="_blank"
-        rel="noopener"
-        >${remote.firmwareVersionText}</a
-      >
-    </footer>
+function menu(r: PlaRemote): TemplateResult {
+  const on = r.isOn(ENTITIES.schedule);
+  const item = (label: string, iconSvg: string, onClick: () => void, cls = "") =>
+    html`<button role="menuitem" class=${cls} @click=${onClick}>${label}${icon(iconSvg)}</button>`;
+  return html`<div class="menu glass" role="menu" aria-label="Actions">
+    <div class="t">${r.meals.length} meals · ${on ? r.upcomingMeals.periodText.toLowerCase() : "paused"}</div>
+    ${item(on ? "Pause Schedule" : "Resume Schedule", on ? pauseIcon : playIcon, () =>
+      on
+        ? r.ask({
+            title: "Pause schedule?",
+            text: "No meals will be served automatically until you resume it.",
+            action: "Pause",
+            destructive: true,
+            onConfirm: () => r.toggleSwitch(ENTITIES.schedule),
+          })
+        : (r.toggleSwitch(ENTITIES.schedule), r.toggleMenu()),
+    )}
+    ${item("Rotate Plate", rotateIcon, () => (r.pressButton(ENTITIES.rotatePlate), r.toggleMenu()))}
+    ${item("Toggle Lid", lidIcon, () => (r.pressButton(ENTITIES.doorToggle), r.toggleMenu()))}
+    ${r.missedMealReason !== null
+      ? html`<hr />
+          ${item("Clear Missed Meal", errorIcon, () => (r.pressButton(ENTITIES.clearMissedMeal), r.toggleMenu()), "text-red")}`
+      : nothing}
+  </div>`;
+}
+
+function sheet(r: PlaRemote): TemplateResult {
+  const draft = r.draft;
+  if (!draft) return html``;
+  const name = ENTITIES.feedTimes[draft.index]?.name ?? "";
+  const end = r.draftEndText;
+  const wait = r.numText(ENTITIES.arrivalTimeout, "minute");
+  const eat = r.numText(ENTITIES.minimumFeedingTime, "minute");
+  return html`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="grabber"></div>
+    <div class="top">
+      <button class="gbtn round glass press" aria-label="Cancel" @click=${() => r.closeOverlays()}>${icon(closeIcon)}</button>
+      <h2 class="ttl m-0 text-[17px]" id="sheet-title">${name}</h2>
+      <button class="gbtn round prom press" aria-label="Save" @click=${() => r.saveDraft()}>${icon(checkIcon)}</button>
+    </div>
+    <h3 class="sec-h pt-2">Schedule</h3>
+    <div class="group">
+      <label class="cell">
+        <span class="main">Date</span>
+        <input
+          type="date"
+          class="pick"
+          required
+          .value=${draft.date}
+          @input=${(e: Event) => r.editDraft({ date: (e.target as HTMLInputElement).value })}
+        />
+      </label>
+      <label class="cell">
+        <span class="main">Start</span>
+        <input
+          type="time"
+          class="pick"
+          required
+          .value=${draft.time}
+          @input=${(e: Event) => r.editDraft({ time: (e.target as HTMLInputElement).value })}
+        />
+      </label>
+      <div class="cell">
+        <span class="main">Lid closes</span>
+        <span class="val">${end ?? "When your pet arrives"}</span>
+      </div>
+    </div>
+    <p class="sec-f">
+      ${end
+        ? `The lid waits up to ${wait} for your pet, then stays open ${eat} once they arrive.`
+        : `The lid waits for your pet, then stays open ${eat} once they arrive.`}
+      Change these in Settings.
+    </p>
+    <p class="sec-f">${r.draftPeriodText}</p>
+  </div>`;
+}
+
+function alertDialog(r: PlaRemote): TemplateResult {
+  const c = r.confirm;
+  if (!c) return html``;
+  return html`<div class="alert glass" role="alertdialog" aria-modal="true" aria-labelledby="alert-title">
+    <h2 id="alert-title">${c.title}</h2>
+    <p>${c.text}</p>
+    <div class="btns">
+      <button @click=${() => r.answer(false)}>Cancel</button>
+      <button class=${c.destructive ? "dst" : "prom"} @click=${() => r.answer(true)}>${c.action}</button>
+    </div>
+  </div>`;
+}
+
+function toastBox(text: string, info: boolean): TemplateResult {
+  return html`<div class="toast glass" aria-hidden="true">
+    ${icon(info ? infoIcon : errorIcon, info ? "text-tint" : "text-red")}<span>${text}</span>
+  </div>`;
+}
+
+function toast(r: PlaRemote): TemplateResult {
+  const t = r.toast;
+  return html`
+    <div class="sr-only" role="status">${t?.info ? t.text : ""}</div>
+    <div class="sr-only" role="alert">${t && !t.info ? t.text : ""}</div>
+    ${t ? toastBox(t.text, t.info) : nothing}
+  `;
+}
+
+export function renderTemplate(r: PlaRemote): TemplateResult {
+  const tab = TABS.find((t) => t.id === r.tab) ?? TABS[0];
+  const overlay = !!(r.draft || r.menuOpen || r.confirm);
+  return html`
+    <main>${tab?.render(r)}</main>
+    ${tabBar(r)} ${toast(r)}
+    ${overlay ? html`<div class="dim" @click=${() => r.closeOverlays()}></div>` : nothing}
+    ${r.menuOpen ? menu(r) : nothing} ${sheet(r)} ${alertDialog(r)}
   `;
 }

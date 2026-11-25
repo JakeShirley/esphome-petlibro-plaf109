@@ -4,9 +4,18 @@ A mobile-first remote for the [PetLibro PLAF109](../README.md) (Polar Wet Food F
 
 This is a ESPHome only solution to take control of your PetLibro Wet Feeder without need for a HAOS server and with UX better than the factory app (IMO). You might be better off with a dashboard in HAOS if you have that available. Don't port forward this application without SSL and authentication.
 
-![Remote on a phone: feeding cards, chamber and configuration settings, and missed meal and battery warnings](docs/screenshots.png)
+![Remote on a phone: Feeder, Schedule and Settings tabs in an iOS-style design](docs/screenshots.png)
 
-Fig 1. screenshots of various pages using mocked data (this feeder doesn't seem to get that cold).
+Fig 1. Feeder, Schedule and Settings tabs using mocked data (this feeder doesn't seem to get that cold).
+
+The UI follows the PetLibro app's layout with an iOS-style look:
+
+- **Feeder**: status, next meal, chamber, visits, and quick actions.
+- **Schedule**: the plate and a meal list. Tap a compartment or meal to edit its date and time in a sheet. Changes save on ✓.
+- **Settings**: freshness, mealtime and device settings, plus **Appearance**.
+- **Feed Now** (the round button next to the tabs) asks for confirmation first.
+
+Appearance lets you pick an accent color and a Light, Dark or Auto (follows the system) mode. These choices are stored in the browser (`localStorage`), not on the device, so each phone keeps its own.
 
 ## Usage
 
