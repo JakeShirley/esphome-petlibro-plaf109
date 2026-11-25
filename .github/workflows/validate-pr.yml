@@ -66,12 +66,16 @@ jobs:
           cat > "$dir/secrets.yaml" <<'EOF'
           wifi_ssid: "ci-dummy-ssid"
           wifi_password: "ci-dummy-password"
-          plaf109__encryption_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-          plaf109__ota_password: "ci-dummy-ota-password"
-          plaf109__hotspot_password: "ci-dummy-hotspot-password"
-          plaf109__web_user: "ci-dummy-user"
-          plaf109__web_password: "ci-dummy-web-password"
           EOF
+          for device in plaf108 plaf109 plwf105; do
+            {
+              echo "${device}__encryption_key: \"Y2ktZHVtbXktYXBpLWVuY3J5cHRpb24ta2V5LTMyYiE=\""
+              echo "${device}__ota_password: \"ci-dummy-ota-password\""
+              echo "${device}__hotspot_password: \"ci-dummy-hotspot-password\""
+              echo "${device}__web_user: \"ci-dummy-user\""
+              echo "${device}__web_password: \"ci-dummy-web-password\""
+            } >> "$dir/secrets.yaml"
+          done
 
       - name: Build ${{ matrix.config }}
         uses: esphome/build-action@v8.1.0
