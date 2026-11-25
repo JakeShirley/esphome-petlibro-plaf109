@@ -159,8 +159,8 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'true'
-  - id: cooling_unmet_since  # millis() when cooling started without reaching target, 0 when idle
-    type: uint32_t
+  - id: cooling_unmet_since  # millis_64() when cooling started without reaching target, 0 when idle
+    type: uint64_t
     restore_value: no
     initial_value: '0'
 
@@ -846,7 +846,7 @@ sensor:
               - switch.turn_on: tec_control_pin
               - lambda: |-
                   if (id(cooling_unmet_since) == 0) {
-                    id(cooling_unmet_since) = std::max<uint32_t>(millis(), 1);
+                    id(cooling_unmet_since) = std::max<uint64_t>(millis_64(), 1);
                   }
             else:
               - switch.turn_off: tec_control_pin
@@ -1019,7 +1019,7 @@ binary_sensor:
       sorting_group_id: cooling
     lambda: |-
       return id(cooling_unmet_since) != 0 &&
-             millis() - id(cooling_unmet_since) >= ${cooling_warning_hours} * 60UL * 60UL * 1000UL;
+             millis_64() - id(cooling_unmet_since) >= ${cooling_warning_hours} * 60ULL * 60ULL * 1000ULL;
     on_press:
       - logger.log:
           format: "Cooling has run for over ${cooling_warning_hours}h without reaching %.0f°F (chamber %.1f°F)"
