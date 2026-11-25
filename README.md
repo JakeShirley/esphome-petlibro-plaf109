@@ -1,18 +1,21 @@
-# ESPHome for PetLibro Devices
+# ESPHome for the PetLibro PLAF109 Polar Wet Food Feeder
+
+> [!IMPORTANT]
+> This project is **exclusively for the PetLibro PLAF109** Polar Wet Food Feeder. It is **not** a generic firmware for PetLibro devices and will not work on other models (feeders, fountains, etc.). Do not flash it onto any other device.
 
 ## Overview
 
-Alternative DIY open-source [ESPHome firmware](https://esphome.io) for the [Petlibro](https://petlibro.com) PLAF109 Polar Wet Food Feeder. Originally forked from [taylorfinnell/petlibro-esphome](https://github.com/taylorfinnell/petlibro-esphome); this repository now focuses exclusively on the PLAF109.
+Alternative DIY open-source [ESPHome firmware](https://esphome.io) for the [Petlibro](https://petlibro.com) PLAF109 Polar Wet Food Feeder. Originally forked from [taylorfinnell/petlibro-esphome](https://github.com/taylorfinnell/petlibro-esphome); this repository supports only the PLAF109.
 
 PetLibro makes WiFi-connected pet food feeders and water fountains based on ESP8266/ESP32 microcontrollers from Espressif. Their factory firmware requires you to create an account and remain connected to their cloud to be functional. We have good reason not to trust PetLibro with our privacy due to [their exceptionally poor handling of vulnerabilities in the past](https://bobdahacker.com/blog/petlibro).
 
-This ESPHome firmware implements local LAN support with feature-parity as stock firmware without need for cloud/WAN connection.
+This ESPHome firmware gives the PLAF109 local LAN support with feature-parity with the stock firmware, without need for a cloud/WAN connection.
 
 ![PLAF109 on-device web dashboard on a phone: Feeder, Schedule and Settings tabs](plaf109/ui/docs/screenshots.png)
 
 [PLAF109](plaf109/#on-device-web-dashboard) includes an optional on-device web dashboard, so it can be controlled from a phone without Home Assistant. Screenshot uses mocked data.
 
-**Related repositories and alternatives:**
+**Related repositories and alternatives** (including options for other PetLibro models):
 
 - Original ESPHome Repository: <https://github.com/taylorfinnell/petlibro-esphome/>
 - MQTT DNS intercept for PLAF203, no flashing required but no control over code executed on device: <https://github.com/icex2/plaf203/>
@@ -22,9 +25,11 @@ This ESPHome firmware implements local LAN support with feature-parity as stock 
 
 Please note that this software is provided without any explicit or implied warranty, and maintainers of this repository claim no responsibility for potential damage to your device, voiding of factory warranty, or any other damage caused.
 
-## Supported Devices
+## Supported Device
 
 - [PLAF109](plaf109/) - Polar Wet Food Feeder (refrigerated)
+
+This is the only supported device, and no other models are planned. If you own a different PetLibro device, see the related repositories above.
 
 ## Flashing ESPHome
 
@@ -34,16 +39,16 @@ Requirements:
 
 - [Latest version of esptool](https://github.com/espressif/esptool/releases)
 - [USB to Serial Adapter](https://www.adafruit.com/product/5994). You will need at least support for TTL and for proper support, buy an adapter with full RS232 serial support.
-- Follow the instructions in the README specific to your device to disassemble your device and connect to your board with the serial adapter before proceeding.
+- Follow the instructions in the [PLAF109 README](plaf109/) to disassemble your feeder and connect to your board with the serial adapter before proceeding.
   - Ideally, you should solder headers to at least GND/TX/RX/VCC, but you may be able to flash by holding contacts to the board instead.
-  - You will also need to follow the instructions specific to your device to boot the device in programming mode.
+  - You will also need to follow the PLAF109 instructions to boot the device in programming mode.
 - Once done, confirm you have a good connection with `./esptool read-mac`. This will also inform you of which serial port to use later on. Note this down.
 
 ### Dumping Stock Firmware
 
 Before flashing the firmware, you should backup the stock firmware. The firmware installed from the factory includes data unique to your device, such as the internal ID and cryptographic keys used to communicate with the cloud server, so if you wish to be able to return your device to a state where it can communicate with the Petlibro cloud then you'll need to have made a backup.
 
-This can be done by following the instructions for setting up the serial connection for your device in developer mode as per the instructions below, and then running the following `esptool` command with the [latest version of esptool](https://github.com/espressif/esptool/releases):
+This can be done by following the PLAF109 instructions for setting up the serial connection in developer mode, and then running the following `esptool` command with the [latest version of esptool](https://github.com/espressif/esptool/releases):
 
 ```bash
 ./esptool --port /dev/ttyUSB0 --before=default-reset --no-stub read-flash 0x0 ALL petlibro_factory_dump.bin
