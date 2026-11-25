@@ -1,14 +1,10 @@
-external_components:
-  - source: github://sylphrena0/esphome-custom-web-server@main
-    components: [custom_web_server]
-
-custom_web_server:
-  - path: ${path}
-    js_url: https://github.com/sylphrena0/petlibro-esphome-plaf109-ui/releases/download/${version}/app.js
-    css_url: https://github.com/sylphrena0/petlibro-esphome-plaf109-ui/releases/download/${version}/style.css
-    body: <esp-app></esp-app>
-    title: ${title}
-    local: true  # cannot load dynamically due to CORS
+# Replaces the stock web_server UI with the custom dashboard built from ../ui.
+# Paths resolve relative to this file, so this also works as a remote package.
+web_server:
+  js_include: ../ui/build/app.js
+  css_include: ../ui/build/style.css
+  js_url: ""
+  css_url: ""
 
 text_sensor:
   - platform: version

@@ -1,0 +1,31 @@
+{
+  "name": "petlibro-esphome-plaf109-ui",
+  "private": true,
+  "type": "module",
+  "description": "Small mobile-friendly remote for an ESPHome PLAF109..",
+  "license": "GPL-3.0-or-later",
+  "packageManager": "yarn@4.18.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc && tailwindcss -i css/tailwind.css -o build/.tw.css -m && esbuild build/.tw.css --bundle --minify --loader:.png=dataurl --outfile=build/style.css && rm build/.tw.css && esbuild src/app.ts --bundle --minify --loader:.svg=text --outfile=build/app.js --format=esm --target=es2020",
+    "watch": "tsc --watch",
+    "lint": "eslint src/*.ts",
+    "dev": "yarn build && node dev-server.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@tailwindcss/cli": "^4.3.3",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.14.0",
+    "eslint-plugin-sonarjs": "^4.2.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1"
+  },
+  "dependencies": {
+    "@material-symbols/svg-400": "^0.48.2",
+    "lit": "^3.3.3"
+  }
+}

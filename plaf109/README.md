@@ -4,9 +4,9 @@
 
 ### On-Device Web Dashboard
 
-This device has an optional custom UI that is enabled by default, source code at [sylphrena0/petlibro-esphome-plaf109-ui](https://github.com/sylphrena0/petlibro-esphome-plaf109-ui).
+This device has an optional custom UI that is enabled by default. It replaces the stock ESPHome web UI at `http://<device-ip>/` and is built into the firmware, so it works without internet access. Source code is in [`ui/`](ui/) (originally [sylphrena0/petlibro-esphome-plaf109-ui](https://github.com/sylphrena0/petlibro-esphome-plaf109-ui)).
 
-![Remote on a phone: feeding cards, chamber and configuration settings, and missed meal and battery warnings](https://raw.githubusercontent.com/sylphrena0/petlibro-esphome-plaf109-ui/refs/heads/main/docs/screenshots.png)
+![Remote on a phone: feeding cards, chamber and configuration settings, and missed meal and battery warnings](ui/docs/screenshots.png)
 
 Note that screenshot uses mocked data (this feeder doesn't seem to get that cold).
 
@@ -145,8 +145,7 @@ You can customize the configuration with substitutions:
 substitutions:
   name: plaf109  # custom name for your device
   friendly_name: Polar Wet Food Feeder  # used in HAOS, dashboard, and default UI
-  dashboard: true  # enable custom dashboard, accessible via <device-ip>/dashboard
-  dashboard_path: /dashboard  # only required if you want a path that isn't /dashboard
+  dashboard: true  # replace the stock web UI with the custom dashboard
 
 packages:
   plaf109: github://sylphrena0/petlibro-esphome/plaf109/config.yaml@main
@@ -162,7 +161,7 @@ web_server:
   auth: !remove
 ```
 
-Or if you wish to save flash space and not include the dashboard at all:
+Or if you wish to use the stock ESPHome web UI (loaded from the internet, saving flash space) instead of the custom dashboard:
 
 ```yaml
 substitutions:

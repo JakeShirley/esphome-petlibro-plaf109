@@ -6,7 +6,6 @@ substitutions:
   name: plaf109
   friendly_name: Polar Wet Food Feeder
   dashboard: true
-  dashboard_path: /dashboard
 
 esphome:
   name: ${name}
@@ -87,10 +86,6 @@ web_server:
 packages:
   dashboard: !include
     file: ${'extras/dashboard.yaml' if (dashboard | string | lower) in ['true', 'yes'] else 'extras/empty.yaml'}
-    vars:
-      title: ${friendly_name}
-      path: ${dashboard_path}
-      version: v0.3.0
 
 
 debug:
