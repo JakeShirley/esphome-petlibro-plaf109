@@ -8,6 +8,7 @@ substitutions:
   dashboard: true
   cooling_min_target_f: "53"  # colder targets are rejected, the TEC can't sustain them
   cooling_warning_hours: "6"  # flag a problem if cooling runs this long without reaching target
+  battery_present_voltage: "2.0"
 
 esphome:
   name: ${name}
@@ -821,6 +822,8 @@ sensor:
       - clamp:
           min_value: 0
           max_value: 100
+      - lambda: |-
+          return id(battery_voltage).state >= ${battery_present_voltage} ? x : NAN;  // unavailable rather than 0% with no batteries
   - platform: adc
     pin: GPIO1
     id: chamber_temperature_voltage
@@ -962,6 +965,15 @@ binary_sensor:
             level: WARN
             tag: events
         - switch.turn_off: tec_control_pin
+  - platform: template
+    name: "Battery Installed"
+    id: battery_installed
+    icon: "mdi:battery-unknown"
+    web_server:
+      sorting_group_id: power
+    device_class: presence
+    # with no batteries the divider reads ~0V; depleted cells still read well above this (factory 0% is 3.3V)
+    lambda: 'return id(battery_voltage).state >= ${battery_present_voltage};'
   - platform: gpio
     name: "Reset Button"
     icon: "mdi:restart-alert"

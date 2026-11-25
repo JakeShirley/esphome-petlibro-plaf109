@@ -64,6 +64,7 @@ Note that screenshot uses mocked data (this feeder doesn't seem to get that cold
 
 - battery voltage sensor
   - displays charge percentage, using factory formula
+  - reports whether batteries are installed (below 2V is treated as none); percentage is unavailable without batteries
 - ac power detection
   - may take several seconds to update after unplugged
 - chamber temperature
