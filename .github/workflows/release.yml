@@ -7,7 +7,8 @@ on:
 
 permissions:
   contents: write
-  pull-requests: read
+  issues: write
+  pull-requests: write
 
 jobs:
   release:
@@ -18,48 +19,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Determine version
-        id: version
-        uses: PaulHatch/semantic-version@v6.0.4
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
         with:
-          tag_prefix: v
-          major_pattern: /BREAKING CHANGE:/
-          minor_pattern: /^feat(\(.+\))?!?:/
-          search_commit_body: true
+          node-version: 26
 
-      - name: Build changelog
-        id: changelog
-        uses: ardalanamini/auto-changelog@v5
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          release-name: ${{ steps.version.outputs.version_tag }}
-          default-commit-type: Other Changes
-          commit-types: |
-            feat: Features
-            fix: Bug Fixes
-            perf: Performance Improvements
-            revert: Reverts
-            refactor: Refactoring
-            docs: Documentation
-            style: Code Style
-            test: Tests
-            build: Build System & Dependencies
-            ci: Continuous Integration
-            chore: Chores
-
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ steps.version.outputs.version_tag }}
-          name: ${{ steps.version.outputs.version_tag }}
-          target_commitish: ${{ github.sha }}
-          body: ${{ steps.changelog.outputs.changelog }}
-
-      - name: Get major version tag
-        id: major_tag
-        run: echo "tag=$(echo '${{ steps.version.outputs.version_tag }}' | cut -d. -f1)" >> "$GITHUB_OUTPUT"
-
-      - name: Move floating major version tag
-        uses: EndBug/latest-tag@v1
-        with:
-          ref: ${{ steps.major_tag.outputs.tag }}
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          npx --yes
+          -p semantic-release@26
+          -p @semantic-release/exec@7
+          -p conventional-changelog-conventionalcommits@10
+          semantic-release
