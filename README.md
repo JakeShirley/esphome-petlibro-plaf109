@@ -5,7 +5,7 @@
 
 ## Overview
 
-Alternative DIY open-source [ESPHome firmware](https://esphome.io) for the [Petlibro](https://petlibro.com) PLAF109 Polar Wet Food Feeder. Originally forked from [taylorfinnell/petlibro-esphome](https://github.com/taylorfinnell/petlibro-esphome); this repository supports only the PLAF109.
+Alternative DIY open-source [ESPHome firmware](https://esphome.io) for the [Petlibro](https://petlibro.com) PLAF109 Polar Wet Food Feeder. Forked from [sylphrena0/petlibro-esphome](https://github.com/sylphrena0/petlibro-esphome), itself a fork of [taylorfinnell/petlibro-esphome](https://github.com/taylorfinnell/petlibro-esphome); this repository supports only the PLAF109.
 
 PetLibro makes WiFi-connected pet food feeders and water fountains based on ESP8266/ESP32 microcontrollers from Espressif. Their factory firmware requires you to create an account and remain connected to their cloud to be functional. We have good reason not to trust PetLibro with our privacy due to [their exceptionally poor handling of vulnerabilities in the past](https://bobdahacker.com/blog/petlibro).
 
@@ -18,6 +18,7 @@ This ESPHome firmware gives the PLAF109 local LAN support with feature-parity wi
 **Related repositories and alternatives** (including options for other PetLibro models):
 
 - Original ESPHome Repository: <https://github.com/taylorfinnell/petlibro-esphome/>
+- Fork this repository is based on: <https://github.com/sylphrena0/petlibro-esphome/>
 - MQTT DNS intercept for PLAF203, no flashing required but no control over code executed on device: <https://github.com/icex2/plaf203/>
 - MQTT DNS intercept for a number of devices, no flashing required but no control over code executed on device: <https://github.com/smcneece/petlibro-local/>
 - HAOS Support with official servers, no privacy improvement: <https://github.com/jjjonesjr33/petlibro/>
@@ -72,8 +73,8 @@ Instead of copying `plaf109/config.yaml` locally, you can pull it in directly fr
 
 ```yaml
 packages:
-  plaf109: github://sylphrena0/petlibro-esphome/plaf109/config.yaml@main  # always build latest
-  # plaf109: github://sylphrena0/petlibro-esphome/plaf109/config.yaml@v1  # floating, will update non-major versions
+  plaf109: github://JakeShirley/esphome-petlibro-plaf109/plaf109/config.yaml@main  # always build latest
+  # plaf109: github://JakeShirley/esphome-petlibro-plaf109/plaf109/config.yaml@v1  # floating, will update non-major versions
 ```
 
 Use only one of the lines above. You'll still need a local `secrets.yaml` with the `!secret` keys referenced by the config (WiFi credentials, encryption/OTA keys, web UI login). You can override components as you need, but consider pinning to a specific tag if you do so to avoid your override breaking (though the risk is lower when you have to trigger the re-compile to pull in new changes).
