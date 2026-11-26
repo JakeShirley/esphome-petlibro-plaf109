@@ -466,8 +466,20 @@ function lidActionText(r: PlaRemote): string {
 }
 
 function askLid(r: PlaRemote): void {
-  const { label, action, text } = lidAction(r);
-  r.ask({ title: `${label}?`, text, action, onConfirm: () => r.pressButton(ENTITIES.doorToggle) });
+  const asked = lidAction(r);
+  r.ask({
+    title: `${asked.label}?`,
+    text: asked.text,
+    action: asked.action,
+    onConfirm: () => {
+      // the button only toggles, so don't reverse a lid that moved while the dialog was open
+      if (lidAction(r) !== asked) {
+        r.showToast(`Lid is already ${asked === LID_ACTIONS.closed ? "open" : "closed"}`, true);
+        return;
+      }
+      r.pressButton(ENTITIES.doorToggle);
+    },
+  });
 }
 
 function menu(r: PlaRemote): TemplateResult {
@@ -487,6 +499,7 @@ function menu(r: PlaRemote): TemplateResult {
           })
         : (r.toggleSwitch(ENTITIES.schedule), r.toggleMenu()),
     )}
+    ${item("Feed Now", feedIcon, () => askFeed(r))}
     ${item("Rotate Plate", rotateIcon, () => askRotate(r))}
     ${item(lidActionText(r), lidIcon, () => askLid(r))}
     ${r.missedMealReason !== null

@@ -446,7 +446,7 @@ export class PlaRemote extends LitElement {
     return false;
   }
 
-  private showToast(text: string, info = false): void {
+  showToast(text: string, info = false): void {
     this.toast = { text, info };
     if (this.toastTimer) clearTimeout(this.toastTimer);
     this.toastTimer = setTimeout(() => (this.toast = null), 5000);
