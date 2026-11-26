@@ -1909,9 +1909,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"petlibro-esphome-plaf109-ui@workspace:.":
+"esphome-petlibro-plaf109-ui@workspace:.":
   version: 0.0.0-use.local
-  resolution: "petlibro-esphome-plaf109-ui@workspace:."
+  resolution: "esphome-petlibro-plaf109-ui@workspace:."
   dependencies:
     "@eslint/js": "npm:^10.0.1"
     "@material-symbols/svg-400": "npm:^0.48.2"

@@ -1,5 +1,5 @@
 {
-  "name": "petlibro-esphome-plaf109-ui",
+  "name": "esphome-petlibro-plaf109-ui",
   "private": true,
   "type": "module",
   "description": "Small mobile-friendly remote for an ESPHome PLAF109..",

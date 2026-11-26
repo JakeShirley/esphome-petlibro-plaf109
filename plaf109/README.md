@@ -152,14 +152,14 @@ substitutions:
   dashboard: true  # replace the stock web UI with the custom dashboard
 
 packages:
-  plaf109: github://sylphrena0/petlibro-esphome/plaf109/config.yaml@main
+  plaf109: github://JakeShirley/esphome-petlibro-plaf109/plaf109/config.yaml@main
 ```
 
 If that's not enough, you can override components manually. If you wish to not require auth for the dashboard/web_server, for example:
 
 ```yaml
 packages:
-  plaf109: github://sylphrena0/petlibro-esphome/plaf109/config.yaml@main
+  plaf109: github://JakeShirley/esphome-petlibro-plaf109/plaf109/config.yaml@main
 
 web_server:
   auth: !remove
@@ -172,7 +172,7 @@ substitutions:
   dashboard: false
 
 packages:
-  plaf109: github://sylphrena0/petlibro-esphome/plaf109/config.yaml@main
+  plaf109: github://JakeShirley/esphome-petlibro-plaf109/plaf109/config.yaml@main
 ```
 
 ## Data Provenance

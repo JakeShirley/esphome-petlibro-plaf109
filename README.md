@@ -72,8 +72,8 @@ Instead of copying `plaf109/config.yaml` locally, you can pull it in directly fr
 
 ```yaml
 packages:
-  plaf109: github://sylphrena0/petlibro-esphome/plaf109/config.yaml@main  # always build latest
-  # plaf109: github://sylphrena0/petlibro-esphome/plaf109/config.yaml@v1  # floating, will update non-major versions
+  plaf109: github://JakeShirley/esphome-petlibro-plaf109/plaf109/config.yaml@main  # always build latest
+  # plaf109: github://JakeShirley/esphome-petlibro-plaf109/plaf109/config.yaml@v1  # floating, will update non-major versions
 ```
 
 Use only one of the lines above. You'll still need a local `secrets.yaml` with the `!secret` keys referenced by the config (WiFi credentials, encryption/OTA keys, web UI login). You can override components as you need, but consider pinning to a specific tag if you do so to avoid your override breaking (though the risk is lower when you have to trigger the re-compile to pull in new changes).
