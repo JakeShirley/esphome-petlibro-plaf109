@@ -97,49 +97,85 @@ Load the front section with the first meal of the cycle, then the other sections
 
 ## Disassembly
 
-To access the motherboard, unscrew all visible screws on the bottom of the device. Remove all four feet and the battery cover, unscrewing those hidden screws as well. You do not need to unscrew the fan vent on the side.
+To access the motherboard, remove all four rubber feet and the battery cover, then unscrew all 8 screws on the bottom of the device (the 3 visible perimeter screws, 4 under the feet, and 1 inside the battery compartment).
 
-![Image showing screws needed to disassemble device](./assets/base_screws.jpeg)
+![Bottom of the PLAF109 with rubber feet and battery cover removed, showing all 8 screw locations](./assets/base_screws.jpg)
 
-Carefully unclip the bottom cover. The battery, power, and reset cables will need to be disconnected to completely remove the cover. I recommend doing so and only reconnecting the power later for flashing, if you don't trust your serial adapter provides enough power to VCC.
+Newer models of the PLAF109 have a removable fan grill on the side — unscrew the two screws holding the cover. (On older revisions without a removable grill, you do not need to unscrew the fan vent.)
 
-When re-assembling, ensure all connectors are firmly in place. If you remove the motherboard, use caution disconnecting the headers. Mine were secured with hot-glue and very difficult to disconnect without damage.
+![Removable fan grill on newer PLAF109 models held by two screws](./assets/fan_grill.jpg)
+
+Carefully unclip and lift the bottom cover. The battery, DC-in power, and reset cables remain attached underneath and must be disconnected to completely remove the cover.
+
+![Lifting the bottom cover carefully while the battery, power, and reset cables are still attached](./assets/bottom_cover_cables.jpg)
+
+Once detached, you can see the battery, DC-in, and reset cables on the underside of the bottom cover. You can reconnect just the red DC-in power cable (`CON7`) later to power the board while flashing if you don't want to rely on your serial adapter's `VCC`.
+
+![Underside of the detached bottom cover showing the battery, DC-in power (CON7), and reset cables](./assets/bottom_cover_underside.jpg)
+
+Before unplugging anything from the motherboard, take a reference photo of all the connectors. Factory connectors are secured with hot glue — on some units the glue is hard and brittle and peels away fairly easily, while on others it is stubborn, so work carefully to avoid damaging the cables or headers.
+
+![Motherboard installed inside the feeder with connectors secured by factory hot glue](./assets/motherboard_installed.jpg)
 
 *Please note that if you disassemble further for any reason: if you remove the cooling fins and TEC plate (ceramic sandwich under it), it is critical you put it back in the same orientation, or you may accidentally cook your food or even cause a housefire from heat buildup. You have been warned.*
 
 ## Connecting via Serial
 
-The PLAF109 uses an [`ESP32-C3-WROOM-02U`](https://documentation.espressif.com/esp32-c3-wroom-02_datasheet_en.html#%5B12,%22XYZ%22,56.69,436.45,null%5D) and a `aw9523` I2C GPIO expander, and it has no exposed pads to short to easily enter programming mode.
+The PLAF109 uses an [`ESP32-C3-WROOM-02U`](https://documentation.espressif.com/esp32-c3-wroom-02_datasheet_en.html#%5B12,%22XYZ%22,56.69,436.45,null%5D) and an `aw9523` I2C GPIO expander, and it has no dedicated boot button to enter programming mode.
 
-![Image of motherboard showing chip](./assets/esp32_chip.png)
-
-Connect the `3.3V`, `GND`, `TX`, and `RX` lines of your USB-to-serial adapter to the `VCC`, `GND`, `TX`, and `RX` headers on the motherboard.
-
-Solder connections to these four connectors. You might be able to flash by manually holding contacts to them, but it'll be a pain. Refer to the image below:
-
-![Image of motherboard showing VCC/GND/TX/RX connectors](./assets/motherboard.png)
+![Close-up of the ESP32-C3-WROOM-02U module on the motherboard showing GPIO9 (Pin 8)](./assets/esp32_chip.jpg)
 
 ![Pinout of the ESP32-C3-WROOM-02U, top of diagram is the side with the antenna connector](https://github.com/user-attachments/assets/a2bdcd5e-0cec-4a6d-9303-5f37277290ef)
 
+Locate the 4-pin `ISP` header (`GND`, `TX`, `RX`, `VCC`) along the top edge of the motherboard:
+
+![Front of the removed motherboard (PLAF109 MainBoard V1.0) showing the ISP header (GND, TX, RX, VCC)](./assets/motherboard.jpg)
+
+Solder a 4-pin male header (or wires) to the `GND`, `TX`, `RX`, and `VCC` pads. You might be able to flash by manually holding contacts to them, but soldering a header is much more reliable and leaves plenty of clearance when reassembling.
+
+![Close-up of the 4-pin ISP header (GND, TX, RX, VCC) with a 4-pin male header ready to solder](./assets/isp_header_prep.jpg)
+
+![4-pin male header soldered to the ISP (GND, TX, RX, VCC) pads](./assets/isp_header_soldered.jpg)
+
+Connect the `GND`, `TX`, and `RX` lines (and `3.3V` to `VCC` if not powering via the feeder's own power cable) between your USB-to-serial adapter and the soldered `ISP` header.
+
 ## Entering Programming Mode
 
-The ESP32-C3 starts in programming mode when `GPIO9` is pulled low (connected to `GND`) at power-on.
+The ESP32-C3 starts in programming mode when `GPIO9` is pulled low (connected to `GND`) at power-on. You have two options for accessing `GPIO9`:
 
-The contact pad labeled `TP4` on the back of the motherboard is a test point for `GPIO9`. To get access, carefully disconnect all wires and unscrew the motherboard. Use caution if your cables are secured with hot-glue, it is easy to break the connectors. In case you need to access GPIO9 after reinstalling the motherboard, solder a wire to TP4.
+- **Directly on the ESP32-C3 module (no extra soldering):** Hold a grounded jumper wire directly onto Pin 8 (`GPIO9`) of the `ESP32-C3-WROOM-02U` module while applying power.
+- **Via `TP4` on the back of the motherboard:** The contact pad labeled `TP4` is a test point connected to `GPIO9`. If you want permanent access to `GPIO9` after reinstalling the motherboard, solder a wire to `TP4`.
 
-![Image of back of motherboard showing TP4](./assets/motherboard_back.png)
+![Holding a grounded jumper wire directly onto the ESP32-C3 GPIO9 pin (Pin 8) to enter programming mode](./assets/gpio9_jumper.jpg)
+
+![Back of the motherboard showing the TP4 test point (GPIO9)](./assets/motherboard_back.jpg)
 
 1. Disconnect all power sources from the motherboard.
-2. Pull `TP4` (`GPIO9`) low by connecting it to `GND`. Connecting via a 1 kΩ resistor is optional but protects the pin.
+2. Pull `GPIO9` low by connecting Pin 8 on the ESP32-C3 module (or `TP4` on the back) to `GND`.
 3. Connect the USB-to-serial adapter to your computer.
-4. Supply power to the motherboard. The chip starts in programming mode.
-5. Disconnect `TP4` from `GND`.
-6. Backup and flash, continuing guide from the [main README](../README.md#flashing-esphome).
-7. Disconnect and reconnect power. The chip will load the new firmware.
+4. Supply power to the motherboard (for example, by plugging in the feeder's power cable through `CON7` while holding the `GPIO9` jumper in place). The chip starts in programming mode.
 
-If the ESP32-C3 does not start in programming mode, make sure that the wire between `TP4` and `GND` has a good connection. Then repeat steps 1 to 4.
+![Holding GPIO9 low while connecting power through the feeder's power cable (CON7)](./assets/entering_prog_mode.jpg)
+
+5. Release/disconnect `GPIO9` from `GND`.
+6. Backup and flash, continuing the guide from the [main README](../README.md#flashing-esphome).
+
+![Full flashing setup: USB-to-serial adapter wired to the ISP header, feeder power cable attached to CON7, and GPIO9 jumper released](./assets/flashing_setup.jpg)
+
+7. Disconnect and reconnect power. The chip will boot the new firmware.
+
+If the ESP32-C3 does not start in programming mode, make sure your `GPIO9`-to-`GND` connection has solid contact at power-on, then repeat steps 1 to 4.
+
+> [!NOTE]
+> I have not personally tried the automatic `DTR`/`RTS` method below.
 
 If your serial adapter has `DTR` and `RTS` lines, you can let `esptool` enter and exit programming mode automatically instead of power-cycling by hand. Connect `DTR` to `GPIO9` (`TP4`) and `RTS` to `EN`, then connect or power the board so `esptool` pulls `GPIO9` low. Use a 1 kΩ series resistor on `DTR` to protect the pin, or short it directly if you live life on the edge. Per the chip manual you may only need `DTR` to `GPIO9`, but connecting `RTS` to `EN` also works and lets `esptool` reset the board after flashing.
+
+## Reassembly
+
+Reinstall the motherboard and reconnect all headers firmly using your reference photo. A soldered 4-pin `ISP` header clears the enclosure and can stay in place. Reconnect the bottom cover's battery, DC-in power, and reset cables before clipping the base back on and reinstalling the screws, rubber feet, battery cover, and (if present) fan grill.
+
+![Motherboard reinstalled in the feeder with all connectors reattached and the soldered 4-pin ISP header clearing the case](./assets/motherboard_reinstalled.jpg)
 
 ## Customization
 
@@ -174,7 +210,3 @@ substitutions:
 packages:
   plaf109: github://JakeShirley/esphome-petlibro-plaf109/plaf109/config.yaml@main
 ```
-
-## Data Provenance
-
-In order to gain feature parity with the stock app, I used a combination of dumping and reverse engineering the factory firmware and I2C sniffing (see [main README](../README.md#adding-a-new-device)).
