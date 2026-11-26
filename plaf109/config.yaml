@@ -1102,6 +1102,13 @@ binary_sensor:
           format: "door_grating_raw: OFF"
           level: DEBUG
           tag: sensors
+  - platform: template
+    name: "Lid Open"
+    id: lid_open
+    device_class: opening
+    web_server:
+      sorting_group_id: core
+    lambda: return !id(lid_closed);  # flips when the lid starts moving
 text_sensor:
   - platform: template
     name: "Missed Meal Reason"

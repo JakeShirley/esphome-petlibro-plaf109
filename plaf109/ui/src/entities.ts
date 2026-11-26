@@ -43,6 +43,7 @@ export const ENTITIES = {
   feedNow: { domain: "button", name: "Feed Now" },
   rotatePlate: { domain: "button", name: "Rotate Plate" },
   doorToggle: { domain: "button", name: "Toggle Lid" },
+  lidOpen: { domain: "binary_sensor", name: "Lid Open" },
   chime: { domain: "button", name: "Play Chime" },
   clearMissedMeal: { domain: "button", name: "Clear Missed Meal" },
   visitCount: { domain: "sensor", name: "Pet Visit Count" },

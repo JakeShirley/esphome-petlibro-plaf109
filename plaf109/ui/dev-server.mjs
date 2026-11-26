@@ -20,6 +20,7 @@ function set(entity, value, stateStr, numberRange) {
 set(ENTITIES.cooling, true, "ON");
 set(ENTITIES.schedule, true, "ON");
 set(ENTITIES.presence, false, "OFF");
+set(ENTITIES.lidOpen, false, "OFF");
 set(ENTITIES.acPower, true, "ON");
 set(ENTITIES.missedMealReason, "", "");
 set(ENTITIES.battery, 87, "87 %");
@@ -137,6 +138,12 @@ function handleAction(req, res, parts, query) {
     entity.state = next ? "ON" : "OFF";
   } else if (domain === "button") {
     console.log(`[mock] button press: ${name}`);
+    if (name === ENTITIES.doorToggle.name) {
+      const lid = state.get(entityId(ENTITIES.lidOpen));
+      lid.value = !lid.value;
+      lid.state = lid.value ? "ON" : "OFF";
+      broadcast(lid);
+    }
   } else if (domain === "number") {
     const value = Number(query.get("value"));
     if (!(value >= Number(entity.min_value) && value <= Number(entity.max_value))) {

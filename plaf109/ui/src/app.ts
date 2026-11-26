@@ -248,6 +248,10 @@ export class PlaRemote extends LitElement {
     return this.store[entityId(entity)];
   }
 
+  hasEntity(entity: Entity): boolean {
+    return this.entityState(entity) !== undefined;
+  }
+
   private num(entity: Entity): number {
     const value = this.entityState(entity)?.value;
     return typeof value === "number" || (typeof value === "string" && value !== "") ? Number(value) : Number.NaN;
@@ -442,7 +446,7 @@ export class PlaRemote extends LitElement {
     return false;
   }
 
-  private showToast(text: string, info = false): void {
+  showToast(text: string, info = false): void {
     this.toast = { text, info };
     if (this.toastTimer) clearTimeout(this.toastTimer);
     this.toastTimer = setTimeout(() => (this.toast = null), 5000);

@@ -151,7 +151,7 @@ function periodFooter(remote: PlaRemote): string {
 
 function feederTab(r: PlaRemote): TemplateResult {
   const next = r.nextMeal;
-  const upcoming = r.upcomingMeals.days.flatMap((day) => day.meals.map((meal) => ({ day, meal }))).slice(0, 4);
+  const upcoming = r.upcomingMeals.days.flatMap((day) => day.meals.map((meal) => ({ day, meal }))).slice(0, 3);
   const power = r.isOn(ENTITIES.acPower) ? "AC power" : "On battery";
   return html`
     <div class="top">
@@ -204,8 +204,9 @@ function feederTab(r: PlaRemote): TemplateResult {
       </div>
     </div>
     <div class="acts">
-      <button class="act" @click=${() => r.pressButton(ENTITIES.rotatePlate)}><div class="ab">${icon(rotateIcon)}</div>Rotate</button>
-      <button class="act" @click=${() => r.pressButton(ENTITIES.doorToggle)}><div class="ab">${icon(lidIcon)}</div>Lid</button>
+      <button class="act" @click=${() => askFeed(r)}><div class="ab">${icon(feedIcon)}</div>Feed</button>
+      <button class="act" @click=${() => askRotate(r)}><div class="ab">${icon(rotateIcon)}</div>Rotate</button>
+      <button class="act" @click=${() => askLid(r)}><div class="ab">${icon(lidIcon)}</div>${lidActionText(r)}</button>
       <button class="act" @click=${() => r.pressButton(ENTITIES.chime)}><div class="ab">${icon(chimeIcon)}</div>Chime</button>
     </div>
     <h2 class="sec-h big">
@@ -216,11 +217,10 @@ function feederTab(r: PlaRemote): TemplateResult {
       ${upcoming.length === 0
         ? html`<div class="cell"><div class="main text-sec">No upcoming meals</div></div>`
         : upcoming.map(
-            ({ day, meal }, i) => html`<button class="cell" @click=${() => r.openMeal(meal.index)}>
+            ({ day, meal }) => html`<div class="cell">
               <span class="mealdot">${meal.index + 1}</span>
               <div class="main">${meal.timeText}<small>${day.title}${meal.countdownText ? ` · ${meal.countdownText}` : ""}</small></div>
-              ${i === 0 ? html`<span class="tag">Next</span>` : html`<span class="chev"></span>`}
-            </button>`,
+            </div>`,
           )}
     </div>
     <p class="sec-f">${periodFooter(r)}</p>
@@ -428,21 +428,58 @@ function tabBar(r: PlaRemote): TemplateResult {
         </button>`,
       )}
     </div>
-    <button
-      class="solo prom press"
-      aria-label="Feed now"
-      title="Feed now"
-      @click=${() =>
-        r.ask({
-          title: "Feed now?",
-          text: "Opens the lid and serves the next compartment.",
-          action: "Feed",
-          onConfirm: () => r.pressButton(ENTITIES.feedNow),
-        })}
-    >
-      ${icon(feedIcon)}
-    </button>
   </nav>`;
+}
+
+function askFeed(r: PlaRemote): void {
+  r.ask({
+    title: "Feed now?",
+    text: "Opens the lid and serves the next compartment.",
+    action: "Feed",
+    onConfirm: () => r.pressButton(ENTITIES.feedNow),
+  });
+}
+
+function askRotate(r: PlaRemote): void {
+  r.ask({
+    title: "Rotate plate?",
+    text: "Turns the plate to the next compartment.",
+    action: "Rotate",
+    onConfirm: () => r.pressButton(ENTITIES.rotatePlate),
+  });
+}
+
+const LID_ACTIONS = {
+  unknown: { label: "Toggle Lid", action: "Toggle", text: "Opens the lid if it's closed, or closes it if it's open." },
+  open: { label: "Close Lid", action: "Close", text: "Closes the lid. It stays open if your pet is at the feeder." },
+  closed: { label: "Open Lid", action: "Open", text: "Opens the lid without serving a meal." },
+};
+
+/** "unknown" on firmware without the Lid Open sensor */
+function lidAction(r: PlaRemote): (typeof LID_ACTIONS)[keyof typeof LID_ACTIONS] {
+  if (!r.hasEntity(ENTITIES.lidOpen)) return LID_ACTIONS.unknown;
+  return r.isOn(ENTITIES.lidOpen) ? LID_ACTIONS.open : LID_ACTIONS.closed;
+}
+
+function lidActionText(r: PlaRemote): string {
+  return lidAction(r).label;
+}
+
+function askLid(r: PlaRemote): void {
+  const asked = lidAction(r);
+  r.ask({
+    title: `${asked.label}?`,
+    text: asked.text,
+    action: asked.action,
+    onConfirm: () => {
+      // the button only toggles, so don't reverse a lid that moved while the dialog was open
+      if (lidAction(r) !== asked) {
+        r.showToast(`Lid is already ${asked === LID_ACTIONS.closed ? "open" : "closed"}`, true);
+        return;
+      }
+      r.pressButton(ENTITIES.doorToggle);
+    },
+  });
 }
 
 function menu(r: PlaRemote): TemplateResult {
@@ -462,8 +499,9 @@ function menu(r: PlaRemote): TemplateResult {
           })
         : (r.toggleSwitch(ENTITIES.schedule), r.toggleMenu()),
     )}
-    ${item("Rotate Plate", rotateIcon, () => (r.pressButton(ENTITIES.rotatePlate), r.toggleMenu()))}
-    ${item("Toggle Lid", lidIcon, () => (r.pressButton(ENTITIES.doorToggle), r.toggleMenu()))}
+    ${item("Feed Now", feedIcon, () => askFeed(r))}
+    ${item("Rotate Plate", rotateIcon, () => askRotate(r))}
+    ${item(lidActionText(r), lidIcon, () => askLid(r))}
     ${r.missedMealReason !== null
       ? html`<hr />
           ${item("Clear Missed Meal", errorIcon, () => (r.pressButton(ENTITIES.clearMissedMeal), r.toggleMenu()), "text-red")}`

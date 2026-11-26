@@ -563,7 +563,7 @@
     }
   }
 
-  /* floating glass tab bar with a separate prominent Feed button */
+  /* floating glass tab bar */
   .tabs {
     position: fixed;
     z-index: 7;
@@ -605,19 +605,6 @@
   .tabs .t[aria-current="page"] {
     background: var(--fill);
     color: var(--tint);
-  }
-  .tabs .solo {
-    display: grid;
-    place-items: center;
-    flex: none;
-    width: 62px;
-    height: 62px;
-    border: 0;
-    border-radius: 31px;
-    & .ico {
-      width: 28px;
-      height: 28px;
-    }
   }
 
   /* overlays */
