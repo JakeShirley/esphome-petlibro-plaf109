@@ -10,10 +10,9 @@ Fig 1. Feeder, Schedule and Settings tabs using mocked data (this feeder doesn't
 
 The UI follows the PetLibro app's layout with an iOS-style look:
 
-- **Feeder**: status, next meal, chamber, visits, and quick actions.
+- **Feeder**: status, next meal, chamber, visits, and quick actions (Feed, Rotate, Open/Close Lid, Chime). Feed, Rotate and the lid ask for confirmation first.
 - **Schedule**: the plate and a meal list. Tap a compartment or meal to edit its date and time in a sheet. Changes save on ✓.
 - **Settings**: freshness, mealtime and device settings, plus **Appearance**.
-- **Feed Now** (the round button next to the tabs) asks for confirmation first.
 
 Appearance lets you pick an accent color and a Light, Dark or Auto (follows the system) mode. These choices are stored in the browser (`localStorage`), not on the device, so each phone keeps its own.
 
