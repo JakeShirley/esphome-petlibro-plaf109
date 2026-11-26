@@ -52,7 +52,7 @@ var Je=Object.defineProperty;var Xe=Object.getOwnPropertyDescriptor;var y=(s,t,e
     @click=${()=>s.toggleMenu()}
   >
     ${$(Ct)}
-  </button>`}function Be(s){let t=s.upcomingMeals;return t.off?"The schedule is paused, so no meals will be served automatically.":t.periodText==="Daily"?"Repeats daily.":`Repeats ${t.periodText.toLowerCase()}.`}function Ks(s){let t=s.nextMeal,e=s.upcomingMeals.days.flatMap(n=>n.meals.map(a=>({day:n,meal:a}))).slice(0,4),i=s.isOn(c.acPower)?"AC power":"On battery";return m`
+  </button>`}function Be(s){let t=s.upcomingMeals;return t.off?"The schedule is paused, so no meals will be served automatically.":t.periodText==="Daily"?"Repeats daily.":`Repeats ${t.periodText.toLowerCase()}.`}function Ks(s){let t=s.nextMeal,e=s.upcomingMeals.days.flatMap(n=>n.meals.map(a=>({day:n,meal:a}))).slice(0,3),i=s.isOn(c.acPower)?"AC power":"On battery";return m`
     <div class="top">
       <span class="glass flex rounded-[22px]">
         <button class="gbtn round" aria-label="Play chime" @click=${()=>s.pressButton(c.chime)}>${$(Et)}</button>

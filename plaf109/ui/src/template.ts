@@ -151,7 +151,7 @@ function periodFooter(remote: PlaRemote): string {
 
 function feederTab(r: PlaRemote): TemplateResult {
   const next = r.nextMeal;
-  const upcoming = r.upcomingMeals.days.flatMap((day) => day.meals.map((meal) => ({ day, meal }))).slice(0, 4);
+  const upcoming = r.upcomingMeals.days.flatMap((day) => day.meals.map((meal) => ({ day, meal }))).slice(0, 3);
   const power = r.isOn(ENTITIES.acPower) ? "AC power" : "On battery";
   return html`
     <div class="top">
